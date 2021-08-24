@@ -6,6 +6,12 @@ This script combines two ways of parking, one classic by the property of a garag
 
 --- 
 
+### Preview
+
+https://youtu.be/7prJhKprol0
+
+---
+
 ### Dependencies
 
 - PolyZone https://github.com/mkafrin/PolyZone/releases
