@@ -1,0 +1,126 @@
+﻿<html>
+  <head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"
+    />
+
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>-->
+    <link href="style-en.css" rel="stylesheet" type="text/css" />
+  </head>
+
+  <body>
+    <div id="impound-form" class="form">
+      <div class="form__wrapper">
+        <h2>POLICE</h2>
+        <h1>Impound form</h1>
+        <hr />
+        <div id="veh-info" class="veh-info">
+          <div class="veh-info__item">Owner: <span id="owner">Unknown</span></div>
+          <div class="veh-info__item">Plate: <span id="plate">Unknown</span></div>
+        </div>
+        <hr />
+        <div id="names" class="row names">
+          <div class="names__item title">
+            Officer:
+            <div id="officer" class="officer">Not obtained</div>
+          </div>
+
+          <div class="names__item title">
+            Officer Job:
+            <div id="officerjob" class="officerjob">Not obtained</div>
+          </div>
+        </div>
+        <div id="fee-row" class="fee">
+          <label>Fine:* </label>
+          <input
+            type="number"
+            min="250"
+            max="1000000"
+            id="fee"
+            class="form-control"
+            name="fee"
+            placeholder="250 - 1.000.000"
+          />
+        </div>
+        <hr />
+        <div class="form-group">
+          <label>Reason for confiscation:* </label>
+          <textarea
+            id="reason"
+            class="form-control"
+            name="reason"
+            placeholder="Enter here the justification of the impound"
+            rows="2"
+          ></textarea>
+        </div>
+        <hr />
+
+        <div class="names__item title">
+          Pending parking payment:
+          <div id="parkingprice" class="parkingprice">0</div>
+        </div>
+
+        <div id="errors"></div>
+
+        <div id="actions">
+          <button class="btn cancel mr" id="cancel">Cancel</button>
+          <button class="btn success impound-submit-button" id="impound">Confirm</button>
+        </div>
+
+        <div class="lds-ellipsis">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="retrieve-form" class="form">
+      <div class="form__wrapper">
+        <h2>POLICE</h2>
+        <h1>Vehicle depot</h1>
+        <span id="exit">&#x2715;</span>
+        <hr />
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>PLATE</th>
+                <th>FINE</th>
+                <th>WAREHOUSE<br />PRICE</th>
+                <th>UNIT</th>
+                <th>OFFICIAL</th>
+                <th>PARKING</th>
+                <th>TOTAL</th>
+                <th>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody id="impounded-vehicles"></tbody>
+          </table>
+        </div>
+        <hr />
+        <div id="reasonDiv">
+          <div class="vehName">MODEL: <span id="vehName"></span></div>
+          <p>Why was it impounded?</p>
+          <textarea id="r-reason" class="form-control" disabled rows="2"></textarea>
+          <button id="close-reason">CLOSE INFO</button>
+        </div>
+        <div class="help">
+          The <strong> PLATE </strong> corresponds to the registration of your vehicle, the FINE is the
+          equivalent of the offense to be paid to the police, <strong> DEPOT </strong> is the cost of storage
+          inside the warehouse (it is charged from the moment the vehicle was immobilized) and
+          <strong> PARKING </strong> is the pending cost if the vehicle was in a parking lot (the price is
+          charged only until before the moment the vehicle was immobilized)
+          <p>
+            <strong>The total cost does not include the parking fee while you review this menu</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script src="script-en.js" type="text/javascript"></script>
+  </body>
+</html>

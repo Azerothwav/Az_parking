@@ -1,0 +1,152 @@
+﻿<html>
+  <head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"
+    />
+
+    <script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>-->
+    <link href="style-es.css" rel="stylesheet" type="text/css" />
+  </head>
+
+  <body>
+    <img id="cursor" src="cursor.png" />
+
+    <div id="impound-form" class="form">
+      <div class="form__wrapper">
+        <h2>POLICIA NACIONAL - TRANSITO Y TRANSPORTE</h2>
+        <h1>Formulario de inmovilización</h1>
+        <hr />
+        <div id="veh-info" class="veh-info">
+          <div class="veh-info__item">Dueño: <span id="owner">Desconocido</span></div>
+          <div class="veh-info__item">Placa: <span id="plate">Desconocido</span></div>
+        </div>
+        <hr />
+        <div id="names" class="row names">
+          <div class="names__item title">
+            Oficial:
+            <div id="officer" class="officer">No obtenido</div>
+          </div>
+
+          <div class="names__item title">
+            Trabajo:
+            <div id="officerjob" class="officerjob">No obtenido</div>
+          </div>
+        </div>
+        <div id="fee-row" class="fee">
+          <label>Multa:* </label>
+          <input
+            type="number"
+            min="250"
+            max="1000000"
+            id="fee"
+            class="form-control"
+            name="fee"
+            placeholder="250 - 1.000.000"
+          />
+        </div>
+        <hr />
+        <div class="form-group">
+          <label>Motivo de decomiso:* </label>
+          <textarea
+            id="reason"
+            class="form-control"
+            name="reason"
+            placeholder="Debes poner un motivo de al menos 25 caracteres"
+            rows="2"
+          ></textarea>
+        </div>
+        <hr />
+
+        <div class="names__item title">
+          Pago parqueadero pendiente:
+          <div id="parkingprice" class="parkingprice">0</div>
+        </div>
+
+        <div id="errors"></div>
+
+        <div class="lds-ellipsis">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+
+        <div id="actions">
+          <button class="btn cancel mr" id="cancel">Cancelar</button>
+          <button class="btn success impound-submit-button" id="impound">Confirmar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="retrieve-form" class="form">
+      <div class="form__wrapper">
+        <h2>POLICIA NACIONAL - TRANSITO Y TRANSPORTE</h2>
+        <h1>Depósito de vehículos (Los patios)</h1>
+        <span id="exit">&#x2715;</span>
+        <hr />
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>PLACA</th>
+                <th>MULTA</th>
+                <th>PATIOS</th>
+                <th>UNIDAD</th>
+                <th>OFICIAL</th>
+                <th>PARKING</th>
+                <th>TOTAL</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody id="impounded-vehicles"></tbody>
+          </table>
+        </div>
+        <hr />
+        <div id="reasonDiv">
+          <div class="vehName">MODELO: <span id="vehName"></span></div>
+          <p>¿Por qué fue decomisado?</p>
+          <textarea id="r-reason" class="form-control" disabled rows="2"></textarea>
+          <button id="close-reason">CERRAR INFO</button>
+        </div>
+        <div class="help">
+          La <strong>PLACA</strong> corresponde a la matricula de tu vehículo, la MULTA es el equivalente a la
+          infracción a pagar a la policía, <strong>PATIOS</strong> es el costo de almacenamiento dentro del
+          deposito (se cobra desde el momento que se inmovilizó el vehículo) y <strong>PARKING</strong> es el
+          costo pendiente si estaba en un parqueadero el vehículo (se cobra el precio sólo hasta antes del
+          momento que se inmovilizó el vehículo)
+
+          <p>
+            <strong>El costo total no incluye la tarifa de parqueo mientras usted revisa este menú</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-terminal">
+      <h1>Impounded Vehicles</h1>
+      <span id="exit">&#x2715;</span>
+      <hr />
+      <div class="scrollable">
+        <table>
+          <thead>
+            <tr>
+              <th>Plate</th>
+              <th>Release date</th>
+              <th>Fee</th>
+              <th>Authorizing officer</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="admin-impounded-vehicles"></tbody>
+        </table>
+      </div>
+      <hr />
+      <p>Why was the vehicle impounded?</p>
+      <textarea id="admin-reason" class="form-control" disabled rows="5"></textarea>
+    </div>
+
+    <script src="script-es.js" type="text/javascript"></script>
+  </body>
+</html>
