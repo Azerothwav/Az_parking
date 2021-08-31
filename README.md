@@ -38,3 +38,12 @@ The two remaining files in the config folder are used to configure the classic a
 Azeroth#8264
 
 # Hopefully this script will help you ^^
+
+
+---
+
+### Patch Note
+
+Add name of vehicle for public garage + optimisation
+
+---
