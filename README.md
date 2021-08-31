@@ -45,5 +45,3 @@ Azeroth#8264
 ### Patch Note
 
 Add name of vehicle for public garage + optimisation
-
----
