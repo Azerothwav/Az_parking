@@ -44,4 +44,5 @@ Azeroth#8264
 
 ### Patch Note
 
-Add name of vehicle for public garage + optimisation
+- Add name of vehicle for public garage + optimisation
+- Delete Az_concessionaire dependencie
