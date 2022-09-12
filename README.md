@@ -1,5 +1,7 @@
 ![logo2](https://user-images.githubusercontent.com/76072277/132126793-cb45a05a-900f-482e-ada8-35dcfd5fc165.png)
 
+# Important
+Az_parking should be back in a while with new improvements and a total redesign of the system
 
 # Az_parking
 
@@ -12,40 +14,3 @@ This script combines two ways of parking, one classic by the property of a garag
 ### Preview
 
 https://youtu.be/7prJhKprol0
-
----
-
-### Dependencies
-
-- PolyZone https://github.com/mkafrin/PolyZone/releases
-
----
-
-### Configuration
-
-If you want to add new private or public garages go to config/garages and follow the example of the garages already set.
-If you want to add new private or public parking, go to config/parkings.
-
-The two remaining files in the config folder are used to configure the classic and police impound points (be careful, the police impound is experimental for the moment, patches will correct it soon!)
-
----
-
-### Ms
-
-0.09 and max 0.20 in use.
-
----
-
-### Support
-
-Azeroth#8264
-
-# Hopefully this script will help you ^^
-
-
----
-
-### Patch Note
-
-- Add name of vehicle for public garage + optimisation
-- Delete Az_concessionaire dependencie
