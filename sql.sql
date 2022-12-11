@@ -1,4 +1,14 @@
-/* ESX Only */
+CREATE TABLE `impounded_vehicles` (
+  `plate` varchar(12) NOT NULL,
+  `identifier` varchar(60) NOT NULL,
+  `officer` varchar(60) DEFAULT NULL,
+  `officerjob` varchar(60) DEFAULT NULL,
+  `reason` text NOT NULL,
+  `fee` double NOT NULL,
+  `impoundtime` varchar(255) DEFAULT NULL,
+  `parkingprice` double DEFAULT NULL
+);
+
 CREATE TABLE `owned_vehicles` (
   `owner` varchar(60) NOT NULL,
   `plate` varchar(12) NOT NULL,
@@ -7,18 +17,15 @@ CREATE TABLE `owned_vehicles` (
   `vehiclename` varchar(200) DEFAULT NULL,
   `type` varchar(20) NOT NULL DEFAULT 'car',
   `job` varchar(60) DEFAULT NULL,
-  `job2` varchar(60) DEFAULT NULL,
-  `job3` varchar(60) DEFAULT NULL,
   `stored` tinyint(1) NOT NULL DEFAULT 0,
   `pound` tinyint(1) DEFAULT 0,
+  `garage_time` bigint(10) DEFAULT NULL,
   `garage_name` varchar(20) DEFAULT NULL,
   `garage_type` tinyint(4) DEFAULT 1,
-  `vip` tinyint(4) DEFAULT 0
+  `location` text DEFAULT NULL
 );
 
-
-
-/* QBCore Only */
-ALTER TABLE `player_vehicles` ADD COLUMN `job` varchar(60) DEFAULT NULL;
-ALTER TABLE `player_vehicles` ADD COLUMN `vip` varchar(60) DEFAULT NULL;
-ALTER TABLE `player_vehicles` ADD COLUMN `vehiclename` varchar(200) DEFAULT NULL;
+CREATE TABLE `vehicle_model_prices` (
+  `model` varchar(30) NOT NULL,
+  `price` float NOT NULL DEFAULT 0
+);

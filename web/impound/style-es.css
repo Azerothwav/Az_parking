@@ -1,0 +1,388 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@200;300;400;469;500;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 300;
+}
+
+@media (max-width: 1023px) {
+  body {
+    font-size: 12px;
+  }
+}
+
+button,
+input,
+textarea {
+  font-family: 'Oswald', 'Arial Narrow', Arial, sans-serif;
+  cursor: pointer;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h2 {
+  color: #007437;
+}
+
+#cursor {
+  position: absolute;
+  z-index: 999999;
+  display: none;
+}
+
+#exit {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  z-index: 999;
+  color: grey;
+}
+
+#impound-form {
+  display: none;
+}
+
+label {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.form-control {
+  max-width: 100%;
+  width: 100%;
+  border: solid 1px gray;
+  border-radius: 4px;
+  min-height: 40px;
+  margin-bottom: 5px;
+  padding: 10px 5px;
+}
+
+#names label {
+  width: 50%;
+  display: inline-block;
+}
+
+#impound-form #weeks,
+#impound-form #days,
+#impound-form #hours {
+  width: calc((100% - 8px) / 3);
+}
+
+#impound-form #weeks {
+  margin-right: -1px;
+}
+
+#impound-form #day {
+  width: 50%;
+  display: inline-block;
+}
+
+#days {
+  width: calc(50% + 2px);
+}
+
+#duration-row label {
+  width: 50%;
+  display: inline-block;
+}
+
+#impound-form #fee {
+  margin-left: 2px;
+  margin-right: -2px;
+}
+
+#impound-form #errors {
+  width: 100%;
+}
+
+#impound-form #errors * {
+  color: red;
+  display: block;
+  width: 100%;
+  list-style-type: disc;
+}
+
+/* Retrieve form */
+#retrieve-form {
+  display: none;
+  bottom: 350px;
+}
+
+/* Global */
+h1 {
+  font-size: 16px;
+  text-transform: uppercase;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 8px;
+  border: 1px solid rgb(190, 190, 190);
+}
+
+#retrieve-form td:last-of-type {
+  text-align: right;
+}
+
+#reasonDiv .vehName span {
+  font-weight: bold;
+}
+
+#reasonDiv p {
+  margin: 0;
+}
+
+table .btn {
+  padding: 10px 20px;
+}
+
+.scrollable {
+  max-height: 300px;
+  overflow-y: scroll;
+}
+
+table tbody {
+  height: fit-content;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+th {
+  background-color: #157c19;
+  color: white;
+  text-align: center;
+}
+
+.btn {
+  padding: 10px 35px;
+  background-color: #4286f4;
+  border-radius: 4px;
+  border: none;
+  color: white;
+}
+
+.btn[disabled] {
+  opacity: 0.7;
+}
+
+.mr {
+  margin-right: 5px;
+}
+
+.ml {
+  margin-left: 5px;
+}
+
+#admin-terminal {
+  display: none;
+  bottom: 500;
+}
+
+.checkbox {
+  width: 60%;
+  display: block;
+}
+
+.checkbox input {
+  position: absolute;
+  left: 350px;
+}
+
+.error {
+  color: #d81e1e;
+  display: block;
+  font-weight: bold;
+}
+
+.form {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
+}
+
+div#impound-form {
+  justify-content: flex-end;
+  padding-right: 5vw;
+}
+
+#impound-form #actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+#retrieve-form .form__wrapper {
+  width: 50em;
+}
+
+#retrieve-form table {
+  font-size: 1em;
+  padding: 0;
+}
+
+#retrieve-form td {
+  padding: 0.1em 0.1em;
+  text-align: center;
+}
+
+#retrieve-form button {
+  flex-basis: calc(100% / 2);
+  max-width: calc(100% / 2);
+  margin: 0;
+  padding: 0.5em;
+}
+
+#actions button {
+  flex-basis: calc(100% / 2);
+  max-width: calc(100% / 2);
+  margin: 0;
+  padding: 0.5em;
+}
+
+.form .form__wrapper {
+  width: 20em;
+  max-width: 100%;
+  padding: 3em;
+  box-shadow: 0 0 10em rgba(0, 0, 0, 0.5);
+  max-height: 100%;
+  overflow-y: auto;
+  background-image: url(https://medayork.s3.amazonaws.com/escudo_policia_bg.png);
+  background-position: center;
+  background-color: white;
+  text-align: center;
+}
+
+.form .form__wrapper .title {
+  font-weight: 900;
+}
+
+.form .form__wrapper .names {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.form .form__wrapper .names .names__item {
+  flex-basis: calc(100% / 2);
+  max-width: calc(100% / 2);
+  padding: 0.5em;
+}
+
+.form .form__wrapper .names .names__item > div {
+  display: block;
+  width: 100%;
+  font-weight: 100;
+}
+
+.form .form__wrapper .fee {
+  padding: 0.5em;
+}
+
+.success {
+  background-color: #0ea81d;
+}
+
+.success:hover {
+  background-color: #2dd83e;
+}
+
+.cancel {
+  background-color: #ca0f0f;
+}
+
+.cancel:hover {
+  background-color: #e62c2c;
+}
+
+#impound-form .veh-info {
+  display: flex;
+  justify-content: space-between;
+}
+
+#impound-form .veh-info .veh-info__item {
+  flex-basis: calc(100% / 2);
+  max-width: calc(100% / 2);
+  font-weight: 800;
+}
+
+#impound-form .veh-info .veh-info__item span,
+.parkingprice {
+  font-weight: 300;
+}
+
+.lds-ellipsis {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: auto;
+}
+.lds-ellipsis div {
+  position: absolute;
+  top: 33px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #4d4d4d;
+  animation-timing-function: cubic-bezier(0, 1, 1, 0);
+}
+.lds-ellipsis div:nth-child(1) {
+  left: 8px;
+  animation: lds-ellipsis1 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(2) {
+  left: 8px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(3) {
+  left: 32px;
+  animation: lds-ellipsis2 0.6s infinite;
+}
+.lds-ellipsis div:nth-child(4) {
+  left: 56px;
+  animation: lds-ellipsis3 0.6s infinite;
+}
+@keyframes lds-ellipsis1 {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes lds-ellipsis3 {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0);
+  }
+}
+@keyframes lds-ellipsis2 {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(24px, 0);
+  }
+}

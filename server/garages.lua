@@ -1,388 +1,292 @@
-if Config.FrameWork == "ESX" then
-	ESX.RegisterServerCallback("az_parking:getOutFromGarage", function(source, callback, vehicle, garageName)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		local plate   = vehicle.plate
-		
-		MySQL.Async.fetchAll("SELECT owner,plate,type,vehicle,garage_name,job FROM owned_vehicles WHERE `owner` = @identifier AND `plate` = @plate AND `stored` = 1", {
-			['@identifier'] = xPlayer.identifier,
-			['@plate']      = plate,
-			['@garage_type']  = 1
-		}, function(rs)
-			if type(rs) == 'table' and #rs > 0 and rs[1] ~= nil then
-				MySQL.Async.execute('UPDATE owned_vehicles SET `stored` = 0, `garage_name` = NULL, `garage_type`=@garage_type WHERE `plate` = @plate AND `owner` = @identifier', {
+-- Get out from garage to Drive
+ESX.RegisterServerCallback("az_parking:getOutFromGarage", function(source, callback, vehicle, garageName)
+	local xPlayer = ESX.GetPlayerFromId(source)
+	local plate   = vehicle.plate
+	
+	MySQL.Async.fetchAll("SELECT owner,plate,type,vehicle,garage_name,garage_time,location,job FROM owned_vehicles WHERE `owner` = @identifier AND `plate` = @plate AND `stored` = 1", {
+		['@identifier'] = xPlayer.identifier,
+		['@plate']      = plate,
+		['@garage_type']  = Config.Garages.Type
+	}, function(rs)
+		if type(rs) == 'table' and #rs > 0 and rs[1] ~= nil then
+			
+			if rs[1].job ~= nil and (Config.EnableCivJob and rs[1].job ~= Config.CivJob) and rs[1].job ~= xPlayer.job.name then
+				callback({
+					status  = false,
+					message = string.format(_U("wrong_job")),
+					vehData = vehicleData
+				})
+				return;
+			end
+
+			local fee = 0
+			if _Garages[rs[1].garage_name] then
+				fee = _Utils.GetParkingPrice(rs[1].garage_time, _Garages[rs[1].garage_name].fee, _Garages[rs[1].garage_name].minFee)
+			end
+			local playerMoney = xPlayer.getMoney()
+			
+			if playerMoney >= fee then
+				if _Garages[rs[1].garage_name] and _Garages[rs[1].garage_name].society then
+					TriggerEvent('esx_addonaccount:getSharedAccount', _Garages[rs[1].garage_name].society, function(account)
+						xPlayer.removeMoney(fee)
+						account.addMoney(fee)
+					end)
+				else
+					xPlayer.removeMoney(fee)
+				end
+				MySQL.Async.execute('UPDATE owned_vehicles SET `stored` = 0, `location` = NULL, `garage_name` = NULL, `garage_time` = NULL, `garage_type`=@garage_type WHERE `plate` = @plate AND `owner` = @identifier', {
 					["@plate"]      = plate,
 					["@identifier"] = xPlayer.identifier,
-					['@garage_type']  = 1
+                    ['@garage_type']  = Config.Garages.Type
 				})
 				local vehicleData = { 
 					plate = rs[1].plate, 
 					props = json.decode(rs[1].vehicle), 
+					garageTime = rs[1].garage_time, 
 					owner = rs[1].owner, 
 					garageName = rs[1].garage_name
 				}
-				callback({
-					status  = true,
-					message = Config.Lang["car_out"],
-					vehData = vehicleData
-				})
-				return
-			else
-				callback({
-					status  = false,
-					message = Config.Lang["car_error"],
-				})
-				return
-			end
-		end)
-	end)
-
-	ESX.RegisterServerCallback('az_parking:getGarageCars', function(source, cb, parametre)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		local identifier = xPlayer.identifier
-		local query = "SELECT * FROM owned_vehicles WHERE owner=@identifier AND type=@vehType AND job IS NULL AND stored=1 AND garage_name=@garagename"
-		local dataquery = {
-			['@identifier'] = identifier,
-			['@vehType'] = parametre.vehType,
-			['@garagename'] = parametre.garageName
-		}
-		MySQL.Async.fetchAll(
-			query,
-			dataquery,
-		function(result)
-			local vehicles = nil
-			if type(result) == 'table' and #result > 0 then
-				vehicles = {}
-				for key, vehicle in pairs(result) do
-					table.insert(vehicles, vehicle)
-				end
-			end
-			cb(vehicles)
-		end)
-	end)
-
-	ESX.RegisterServerCallback('az_parking:storeVehicle', function(source, cb, vehicle)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		local plate   = vehicle.props.plate
-		local query = nil
-		if vehicle.garageJobName == nil or vehicle.garageJobName == "none" or vehicle.garageJobName == "civ" then
-			if vehicle.type == 2 then
-				query = "SELECT job, vip FROM owned_vehicles WHERE plate = @plate"
-			else
-				query = "SELECT job FROM owned_vehicles WHERE plate = @plate"
-			end
-			dataquery = {
-				['@plate'] = plate
-			}
-			MySQL.Async.fetchAll(query, dataquery, function(result)
-				if result[1] == nil then
-					cb({
-						status  = false,
-						stunvehicle = true,
-						message = Config.Lang["car_error"],
+				if fee == 0 then
+					callback({
+						status  = true,
+						message = string.format(_U("pay_free_success")),
+						vehData = vehicleData
 					})
+					return;
 				else
-					if result[1].job ~= nil then
-						cb({
-							status  = false,
-							message = Config.Lang["job_vehicle"],
-						})
-					elseif result[1].vip ~= 0 and vehicle.type == 2 then
-						cb({
-							status  = false,
-							message = Config.Lang["steal_vip"],
-						})
-					else
-						if vehicle.garageName == nil then
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-						if xPlayer then
-							_Utils.SaveCarInDatabase(xPlayer, vehicle, plate, vehicle.type, cb)
-						else
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-					end
-				end
-			end)
-		else
-			query = "SELECT job FROM owned_vehicles WHERE plate = @plate"
-			dataquery = {
-				['@plate'] = plate
-			}
-			MySQL.Async.fetchAll(query, dataquery, function(result)
-				if result[1] == nil or result[1]["job"] == nil then
-					cb({
-						status  = false,
-						message = Config.Lang["car_error"],
+					callback({
+						status  = true,
+						message = string.format(_U("pay_success", fee)),
+						vehData = vehicleData
 					})
-				else
-					if result[1]["job"] == nil and result[1]["job"] ~= xPlayer["job"].name then
-						cb({
-							status  = false,
-							message = Config.Lang["cant_access"],
-						})
-					else
-						if vehicle.garageName == nil then
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-						if xPlayer then
-							_Utils.SaveCarInDatabase(xPlayer, vehicle, plate, 1, cb)
-						else
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-					end
+					return;
 				end
-			end)
-		end
-	end)
-
-	ESX.RegisterServerCallback('az_parking:retrieveJobVehicles', function(source, cb, parametre)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		query = "SELECT vehiclename, plate, vehicle, owner, stored FROM owned_vehicles WHERE job = @job AND garage_name=@garagename"
-		dataquery = {
-			['@job'] = parametre.jobname,
-			['@garagename'] = parametre.garageName
-		}
-		MySQL.Async.fetchAll(query, dataquery, function(result)
-			cb(result)
-		end)
-	end)
-
-	RegisterServerEvent('az_parking:setJobVehicleState')
-	AddEventHandler('az_parking:setJobVehicleState', function(parametre)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		query = "UPDATE owned_vehicles SET `stored` = @stored WHERE plate = @plate AND job = @job"
-		dataquery = {
-			['@stored'] = parametre.state,
-			['@plate'] = parametre.plate,
-			['@job'] = parametre.jobname
-		}
-		MySQL.Async.execute(query, dataquery, function()
-		end)
-	end)
-
-	if Config.StoreOnServerStart then
-		MySQL.ready(function ()
-			MySQL.Async.execute("UPDATE owned_vehicles SET `stored`=0 WHERE `stored`=3", {})
-		end)
-	end
-
-	RegisterServerEvent('az_parking:transfereJob')
-	AddEventHandler('az_parking:transfereJob', function(plate)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		MySQL.Async.execute('UPDATE owned_vehicles SET `job` = @job WHERE plate = @plate', {
-			['@job'] = xPlayer.job.name,
-			['@plate'] = plate,
-		}, function()
-		end)
-	end)
-
-	RegisterServerEvent('az_parking:renamevehicle')
-	AddEventHandler('az_parking:renamevehicle', function(plate, name)
-		MySQL.Async.execute('UPDATE owned_vehicles SET vehiclename=@vehiclename WHERE plate=@plate', {['@vehiclename'] = name, ['@plate'] = plate})
-	end)
-elseif Config.FrameWork == "QBCore" then
-	QBCore.Functions.CreateCallback("az_parking:getOutFromGarage", function(source, callback, vehicle, garageName)
-		local Player = QBCore.Functions.GetPlayer(source)
-		local plate   = vehicle.plate
-		
-		MySQL.Async.fetchAll("SELECT citizenid,plate,mods,garage FROM player_vehicles WHERE `citizenid` = @citizenid AND `plate` = @plate AND `state` = 1", {
-			['@citizenid'] = Player.PlayerData.citizenid,
-			['@plate']      = plate,
-			['@garage_type']  = 1
-		}, function(rs)
-			if type(rs) == 'table' and #rs > 0 and rs[1] ~= nil then
-				MySQL.Async.execute('UPDATE player_vehicles SET `state` = 0, `garage` = NULL WHERE `plate` = @plate AND `citizenid` = @citizenid', {
-					["@plate"]      = plate,
-					["@citizenid"] = Player.PlayerData.citizenid
-				})
-				local vehicleData = { 
-					plate = rs[1].plate, 
-					props = json.decode(rs[1].mods), 
-					owner = rs[1].citizenid, 
-					garageName = rs[1].garage
-				}
-				callback({
-					status  = true,
-					message = Config.Lang["car_out"],
-					vehData = vehicleData
-				})
-				return
 			else
+				local left = fee - playerMoney
 				callback({
 					status  = false,
-					message = Config.Lang["car_error"],
+					message = _U("not_enough_money_left", left),
 				})
-				return
+				return;
 			end
-		end)
-	end)
-
-	QBCore.Functions.CreateCallback('az_parking:getGarageCars', function(source, cb, parametre)
-		local Player = QBCore.Functions.GetPlayer(source)
-		query = "SELECT * FROM player_vehicles WHERE citizenid=@citizenid AND job IS NULL AND state=1 AND garage=@garagename"
-		dataquery = {
-			['@citizenid'] = Player.PlayerData.citizenid,
-			['@garagename'] = parametre.garageName
-		}
-		MySQL.Async.fetchAll(
-			query,
-			dataquery,
-		function(result)
-			local vehicles = nil
-			if type(result) == 'table' and #result > 0 then
-				vehicles = {}
-				for key, vehicle in pairs(result) do
-					table.insert(vehicles, vehicle)
-				end
-			end
-			cb(vehicles)
-		end)
-	end)
-
-	QBCore.Functions.CreateCallback('az_parking:storeVehicle', function(source, cb, vehicle)
-		local Player = QBCore.Functions.GetPlayer(source)
-		local plate   = vehicle.props.plate
-		local query = nil
-		if vehicle.garageJobName == nil or vehicle.garageJobName == "none" or vehicle.garageJobName == "civ" then
-			if vehicle.type == 2 then
-				query = "SELECT job, vip FROM player_vehicles WHERE plate = @plate"
-			else
-				query = "SELECT job FROM player_vehicles WHERE plate = @plate"
-			end
-			dataquery = {
-				['@plate'] = plate
-			}
-			MySQL.Async.fetchAll(query, dataquery, function(result)
-				if result[1] == nil then
-					cb({
-						status  = false,
-						stunvehicle = true,
-						message = Config.Lang["car_error"],
-					})
-				else
-					if result[1].job ~= nil then
-						cb({
-							status  = false,
-							message = Config.Lang["job_vehicle"],
-						})
-					elseif result[1].vip ~= 0 and vehicle.type == 2 then
-						cb({
-							status  = false,
-							message = Config.Lang["steal_vip"],
-						})
-					else
-						if vehicle.garageName == nil then
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-						if Player then
-							_Utils.SaveCarInDatabase(Player, vehicle, plate, vehicle.type, cb)
-						else
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-					end
-				end
-			end)
 		else
-			query = "SELECT job FROM player_vehicles WHERE plate = @plate"
-			dataquery = {
-				['@plate'] = plate
-			}
-			MySQL.Async.fetchAll(query, dataquery, function(result)
-				if result[1] == nil or result[1]["job"] == nil then
-					cb({
-						status  = false,
-						message = Config.Lang["car_error"],
-					})
-				else
-					if result[1]["job"] == nil and result[1]["job"] ~= Player.PlayerData.job.name then
-						cb({
-							status  = false,
-							message = Config.Lang["cant_access"],
-						})
-					else
-						if vehicle.garageName == nil then
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-						if Player then
-							_Utils.SaveCarInDatabase(Player, vehicle, plate, 1, cb)
-						else
-							cb({
-								status  = false,
-								message = Config.Lang["car_error"],
-							})
-						end
-					end
-				end
-			end)
+			callback({
+				status  = false,
+				message = _U("invalid_car"),
+			})
+			return;
 		end
 	end)
+end)
 
-	QBCore.Functions.CreateCallback('az_parking:retrieveJobVehicles', function(source, cb, parametre)
-		query = "SELECT vehiclename, plate, mods, citizenid, state FROM player_vehicles WHERE job = @job AND garage=@garagename"
-		dataquery = {
-			['@job'] = parametre.jobname,
-			['@garagename'] = parametre.garageName
-		}
-		MySQL.Async.fetchAll(query, dataquery, function(result)
-			cb(result)
-		end)
+-- Get VEHICLE parking price from FEE
+ESX.RegisterServerCallback("az_parking:getCarGaragePrice", function(source, cb, plate)
+	if Config.Debug then
+		print("Buscando placa: ".. plate)
+	end
+	MySQL.Async.fetchAll("SELECT owner, garage_name,garage_time FROM owned_vehicles WHERE `plate`= @plate AND `garage_type` = @garage_type", {
+		['@plate'] = plate,
+		['@garage_type']  = Config.Garages.Type
+	}, function(response) 
+		if type(response) == 'table' and response[1] ~= nil then
+			if Config.Debug then
+				print("We have founded one or more vehicles")
+				print(json.encode(response[1]))
+			end
+			local vehicleInfo = response[1]
+			local garageName = vehicleInfo.garage_name
+			local fee = 0
+			if garageName == nil then
+				-- TODO: NOTIFY CAR PARKING NAME NOT FOUND
+				if Config.Debug then
+					print("Parking not founded")
+				end
+				cb(0, 0, response[1].owner, nil)
+			end
+			if vehicleInfo.garage_time ~= nil and _Garages[garageName] ~= nil and _Garages[garageName].fee ~= nil then
+				if Config.Debug then
+					print("Parking price cannot be calculated")
+				end
+				local currentFee = _Utils.GetParkingPrice(vehicleInfo.garage_time, _Garages[garageName].fee, _Garages[garageName].minFee)
+				if Config.Debug then
+					print("Price of parking: "..currentFee)
+				end
+				cb(currentFee, _Garages[garageName].fee, response[1].owner, garageName)
+			else
+				-- TODO: NOTIFY CAR FEE ERROR
+				cb(0, 0, response[1].owner, garageName)
+			end
+		else
+			-- TODO: NOTIFY CAR NOT FOUND ERROR
+			if Config.Debug then
+				print("No se encontraron vehiculos")
+			end
+			cb(0, 0, nil, nil)
+		end
 	end)
+end)
 
-	RegisterServerEvent('az_parking:setJobVehicleState')
-	AddEventHandler('az_parking:setJobVehicleState', function(parametre)
-		query = "UPDATE player_vehicles SET `state` = @state WHERE plate = @plate AND job = @job"
-		dataquery = {
-			['@stored'] = parametre.state,
-			['@plate'] = parametre.plate,
-			['@job'] = parametre.jobname
-		}
-		MySQL.Async.execute(query, dataquery, function()
-		end)
-	end)
+ESX.RegisterServerCallback('az_parking:getGarageCars', function(source, cb, garageName)
+    local _source = source
+    xPlayer = ESX.GetPlayerFromId(_source)
+    identifier = xPlayer.identifier
 
-	if Config.StoreOnServerStart then
-		MySQL.ready(function ()
-			MySQL.Async.execute("UPDATE player_vehicles SET `state`=1 WHERE `state`=0", {})
-		end)
+	local query = 'SELECT * FROM owned_vehicles WHERE owner=@identifier AND garage_type=@garageType AND job IS NULL AND job2 IS NULL'
+	if Config.EnableCivJob then
+		query = 'SELECT * FROM owned_vehicles WHERE owner=@identifier AND garage_type=@garageType AND job IS NULL AND job2 IS NULL'
 	end
 
-	RegisterServerEvent('az_parking:transfereJob')
-	AddEventHandler('az_parking:transfereJob', function(plate)
-		local Player = QBCore.Functions.GetPlayer(source)
-		MySQL.Async.execute('UPDATE player_vehicles SET `job` = @job WHERE plate = @plate', {
-			['@job'] = Player.PlayerData.job.name,
-			['@plate'] = plate,
-		}, function()
-		end)
-	end)
+    if _Garages[garageName] then
+        MySQL.Async.fetchAll(
+			query,
+        {
+            ['@identifier'] = identifier,
+            --['@job'] = xPlayer.job.name,
+            ['@garageName'] = garageName,
+            ['@garageType'] = Config.Garages.Type
+        },
+        function(result)
+			local vehicles = nil
+            if type(result) == 'table' and #result > 0 then
+				vehicles = {}
+                for key, vehicle in pairs(result) do
+                    if _Garages[garageName].fee and _Garages[garageName].fee > 0 then
+                        local addVehicle = vehicle
+                        addVehicle.parkingPrice = _Utils.GetParkingPrice(vehicle.garage_time, _Garages[garageName].fee, _Garages[garageName].minFee)
+                        table.insert(vehicles, addVehicle)
+                    else
+                        table.insert(vehicles, vehicle)
+                    end
+                end
+                cb(vehicles)
+            end
+            cb(vehicles)
+        end)
+    else
+        print(_U('garage_error'))
+    end
+end)
 
-	RegisterServerEvent('az_parking:renamevehicle')
-	AddEventHandler('az_parking:renamevehicle', function(plate, name)
-		MySQL.Async.execute('UPDATE player_vehicles SET vehiclename=@vehiclename WHERE plate=@plate', {['@vehiclename'] = name, ['@plate'] = plate})
+ESX.RegisterServerCallback('az_parking:getGarageCars2', function(source, cb, garageName)
+    local _source = source
+    xPlayer = ESX.GetPlayerFromId(_source)
+    identifier = xPlayer.identifier
+
+	local query = 'SELECT * FROM owned_vehicles WHERE owner=@identifier AND (job2 IS NULL OR job2 = @job2) AND garage_type=@garageType'
+	if Config.EnableCivJob then
+		query = 'SELECT * FROM owned_vehicles WHERE owner=@identifier AND (job2 IS NULL OR job2 = "unemployed2" OR job2 = @job2) AND garage_type=@garageType'
+	end
+
+    if _Garages[garageName] then
+        MySQL.Async.fetchAll(
+			query,
+        {
+            ['@identifier'] = identifier,
+            ['@job2'] = xPlayer.job2.name,
+            ['@garageName'] = garageName,
+            ['@garageType'] = Config.Garages.Type
+        },
+        function(result)
+			local vehicles = nil
+            if type(result) == 'table' and #result > 0 then
+				vehicles = {}
+                for key, vehicle in pairs(result) do
+                    if _Garages[garageName].fee and _Garages[garageName].fee > 0 then
+                        local addVehicle = vehicle
+                        addVehicle.parkingPrice = _Utils.GetParkingPrice(vehicle.garage_time, _Garages[garageName].fee, _Garages[garageName].minFee)
+                        table.insert(vehicles, addVehicle)
+                    else
+                        table.insert(vehicles, vehicle)
+                    end
+                end
+                cb(vehicles)
+            end
+            cb(vehicles)
+        end)
+    else
+        print(_U('garage_error'))
+    end
+end)
+
+ESX.RegisterServerCallback('az_parking:storeVehicle', function(source, cb, vehicle)
+    local _source = source
+    local xPlayer = ESX.GetPlayerFromId(_source)
+    local plate   = vehicle.props.plate
+    
+    if vehicle.garageName == nil or _Garages[vehicle.garageName] == nil then
+        cb({
+            status  = false,
+            message = _U("parking_not_found"),
+        })
+    end
+
+    if xPlayer then
+        _Utils.SaveCarInDatabase(xPlayer, vehicle, plate, Config.Garages.Type, cb)
+    else
+        cb({
+            status  = false,
+            message = _U("player_error"),
+        })
+    end
+end)
+
+
+ESX.RegisterServerCallback('az_parking:retrieveJob2Vehicles', function(source, cb, type)
+	local xPlayer = ESX.GetPlayerFromId(source)
+
+	MySQL.Async.fetchAll('SELECT * FROM owned_vehicles WHERE type = @type AND job2 = @job2', {
+		['@type'] = type,
+		['@job2'] = xPlayer.job2.name
+	}, function(result)
+		cb(result)
+	end)
+end)
+
+ESX.RegisterServerCallback('az_parking:retrieveJobVehicles', function(source, cb, type)
+	local xPlayer = ESX.GetPlayerFromId(source)
+
+	MySQL.Async.fetchAll('SELECT * FROM owned_vehicles WHERE type = @type AND job = @job', {
+		['@type'] = type,
+		['@job'] = xPlayer.job.name
+	}, function(result)
+		cb(result)
+	end)
+end)
+
+RegisterServerEvent('az_parking:setJobVehicleState')
+AddEventHandler('az_parking:setJobVehicleState', function(plate, state)
+	local xPlayer = ESX.GetPlayerFromId(source)
+
+	MySQL.Async.execute('UPDATE owned_vehicles SET `stored` = @stored WHERE plate = @plate AND job = @job', {
+		['@stored'] = state,
+		['@plate'] = plate,
+		['@job'] = xPlayer.job.name
+	}, function(rowsChanged)
+		if rowsChanged == 0 then
+			print(('az_parking: %s exploited the garage!'):format(xPlayer.identifier))
+		end
+	end)
+end)
+
+RegisterServerEvent('az_parking:setJob2VehicleState')
+AddEventHandler('az_parking:setJob2VehicleState', function(plate, state)
+	local xPlayer = ESX.GetPlayerFromId(source)
+
+	MySQL.Async.execute('UPDATE owned_vehicles SET `stored` = @stored WHERE plate = @plate AND job2 = @job2', {
+		['@stored'] = state,
+		['@plate'] = plate,
+		['@job2'] = xPlayer.job2.name
+	}, function(rowsChanged)
+		if rowsChanged == 0 then
+			print(('az_parking: %s exploited the garage!'):format(xPlayer.identifier))
+		end
+	end)
+end)
+
+if Config.StoreOnServerStart then
+	MySQL.ready(function ()
+
+		MySQL.Async.execute("UPDATE owned_vehicles SET `stored`=1 WHERE `stored`=0", {})
+
 	end)
 end
-
-RegisterNetEvent('az_parking:deleteCar', function(entity)
-	DeleteEntity(NetworkGetEntityFromNetworkId(entity))  
-end)

@@ -1,190 +1,93 @@
-if Config.FrameWork == "ESX" then
-	ESX.RegisterServerCallback("az_parking:getOutFromRecover", function(source, callback, parametre)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		local plate   = parametre.vehicle.plate
-		local query = nil
-		local dataquery = {}
-		if parametre.jobname ~= nil and parametre.jobname ~= "civ" and parametre.jobname ~= "none" then
-			query = "SELECT plate, vehicle, owner FROM owned_vehicles WHERE job = @job AND `plate` = @plate"
-			dataquery = {
-				['@job'] = parametre.jobname,
-				['@plate']      = plate
-			}
-		else
-			query = "SELECT plate, vehicle, owner FROM owned_vehicles WHERE `owner` = @identifier AND `plate` = @plate"
-			dataquery = {
-				['@identifier'] = xPlayer.identifier,
-				['@plate']      = plate
-			}
-		end
-		MySQL.Async.fetchAll(query, dataquery
-		, function(rs)
-			if type(rs) == 'table' and #rs > 0 and rs[1] ~= nil then
-				local fee = Config.RecoverBasePrice
-				local playerMoney = xPlayer.getAccount('bank').money	
-				local playerBank = xPlayer.getAccount('money').money
-				
-				if playerMoney >= fee or playerBank >= fee then
-					if playerMoney >= fee then
-						xPlayer.removeAccountMoney('bank', fee)
-					elseif playerBank >= fee then
-						xPlayer.removeAccountMoney('money', fee)
-					end
-					MySQL.Async.execute('UPDATE owned_vehicles SET `stored` = 0, `garage_name` = NULL, `garage_type`= NULL WHERE `plate` = @plate', {
-						["@plate"]      = plate
-					})
-					local vehicleData = { 
-						plate = rs[1].plate, 
-						props = json.decode(rs[1].vehicle), 
-						owner = rs[1].owner, 
-					}
-					callback({
-						status  = true,
-						message = Config.Lang["car_out"],
-						vehData = vehicleData
-					})
-					return
-				else
-					local left = fee - playerMoney
-					callback({
-						status  = false,
-						message = Config.Lang["not_enought_money"],
-					})
-					return
-				end
-			else
+-- Get out from recover to drive
+ESX.RegisterServerCallback("az_parking:getOutFromRecover", function(source, callback, vehicle)
+	local xPlayer = ESX.GetPlayerFromId(source)
+	local plate   = vehicle.plate
+	
+	MySQL.Async.fetchAll("SELECT owned_vehicles.plate, owned_vehicles.vehicle, owned_vehicles.owner, vehicle_model_prices.price FROM owned_vehicles LEFT JOIN vehicle_model_prices ON owned_vehicles.model = vehicle_model_prices.model WHERE `owner` = @identifier AND `plate` = @plate", {
+		['@identifier'] = xPlayer.identifier,
+		['@plate']      = plate
+	}, function(rs)
+		if type(rs) == 'table' and #rs > 0 and rs[1] ~= nil then
+
+			if rs[1].job ~= nil and (Config.EnableCivJob and rs[1].job ~= Config.CivJob) and rs[1].job ~= xPlayer.job.name then
 				callback({
 					status  = false,
-					message = Config.Lang["car_error"],
+					message = string.format(_U("wrong_job")),
+					vehData = vehicleData
 				})
-				return
+				return;
 			end
-		end)
-	end)
 
-	ESX.RegisterServerCallback('az_parking:getNotStored', function(source, cb, parametre)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		local identifier = xPlayer.identifier
-		local query = nil
-		local dataquery = {}
-		if parametre.jobname ~= nil and parametre.jobname ~= "civ" and parametre.jobname ~= "none" then
-			query = "SELECT * FROM owned_vehicles WHERE job =@job AND (`stored`=0) AND type=@vehType"
-			dataquery = {
-				['@job'] = parametre.jobname,
-				['@vehType'] = parametre.type,
-			}
-		else
-			query = "SELECT * FROM owned_vehicles WHERE `owner` = @identifier AND (`stored`=0) AND type=@vehType AND job IS NULL"
-			dataquery = {
-				['@identifier'] = xPlayer.identifier,
-				['@vehType'] = parametre.type,
-			}
-		end
-		MySQL.Async.fetchAll(
-			query,
-			dataquery,
-		function(result)
-			if type(result) == 'table' and #result > 0 and result[1] ~= nil then
-				for key, value in pairs(result) do
-					value.price = value.price or Config.RecoverBasePrice
-				end
-				cb(result)
-			else
-				cb({})
-			end
-		end)
-	end)
-elseif Config.FrameWork == "QBCore" then
-	QBCore.Functions.CreateCallback("az_parking:getOutFromRecover", function(source, callback, parametre)
-		local Player = QBCore.Functions.GetPlayer(source)
-		local plate   = parametre.vehicle.plate
-		local query = nil
-		local dataquery = {}
-		if parametre.jobname ~= nil then
-			query = "SELECT plate, mods, citizenid FROM player_vehicles WHERE job = @job AND `plate` = @plate"
-			dataquery = {
-				['@job'] = parametre.jobname,
-				['@plate']      = plate
-			}
-		else
-			query = "SELECT plate, mods, citizenid FROM player_vehicles WHERE `citizenid` = @citizenid AND `plate` = @plate"
-			dataquery = {
-				['@citizenid'] = Player.PlayerData.citizenid,
-				['@plate']      = plate
-			}
-		end
-		MySQL.Async.fetchAll(query, dataquery
-		, function(rs)
-			if type(rs) == 'table' and #rs > 0 and rs[1] ~= nil then
-				local fee = Config.RecoverBasePrice
-				local playerMoney = xPlayer.getAccount('bank').money	
-				local playerBank = xPlayer.getAccount('money').money
-				
-				if playerMoney >= fee or playerBank >= fee then
-					if playerMoney >= fee then
-						xPlayer.removeAccountMoney('bank', fee)
-					elseif playerBank >= fee then
-						xPlayer.removeAccountMoney('money', fee)
-					end
-					MySQL.Async.execute('UPDATE player_vehicles SET `state` = 0, `garage` = NULL WHERE `plate` = @plate', {
-						["@plate"]      = plate
-					})
-					local vehicleData = { 
-						plate = rs[1].plate, 
-						props = json.decode(rs[1].mods), 
-						owner = rs[1].citizenid, 
-					}
+			local fee         =   math.floor(rs[1].price or Config.RecoverBasePrice * Config.RecoverRate)
+			local playerMoney = xPlayer.getMoney()		
+			
+			if playerMoney >= fee then
+				TriggerEvent('esx_addonaccount:getSharedAccount', Config.RecoverPoints.Society, function(account)
+					xPlayer.removeMoney(fee)
+					account.addMoney(fee)
+				end)
+				MySQL.Async.execute('UPDATE owned_vehicles SET `stored` = 0, `location` = NULL, `garage_name` = NULL, `garage_time` = NULL, `garage_type`= NULL WHERE `plate` = @plate AND `owner` = @identifier', {
+					["@plate"]      = plate,
+					["@identifier"] = xPlayer.identifier
+				})
+				local vehicleData = { 
+					plate = rs[1].plate, 
+					props = json.decode(rs[1].vehicle), 
+					owner = rs[1].owner, 
+				}
+				if fee == 0 then
 					callback({
 						status  = true,
-						message = Config.Lang["car_out"],
+						message = string.format(_U("recover_free_success")),
 						vehData = vehicleData
 					})
-					return
+					return;
 				else
-					local left = fee - playerMoney
 					callback({
-						status  = false,
-						message = Config.Lang["not_enought_money"],
+						status  = true,
+						message = string.format(_U("recover_success", fee)),
+						vehData = vehicleData
 					})
-					return
+					return;
 				end
 			else
+				local left = fee - playerMoney
 				callback({
 					status  = false,
-					message = Config.Lang["car_error"],
+					message = _U("not_enough_money_left", left),
 				})
-				return
+				return;
 			end
-		end)
-	end)
-
-	QBCore.Functions.CreateCallback('az_parking:getNotStored', function(source, cb, parametre)
-		local xPlayer = ESX.GetPlayerFromId(source)
-		local query = nil
-		local dataquery = {}
-		if parametre.jobname ~= nil then
-			query = "SELECT * FROM player_vehicles WHERE job =@job AND `state`=0"
-			dataquery = {
-				['@job'] = parametre.jobname
-			}
 		else
-			query = "SELECT * FROM player_vehicles WHERE `citizenid` = @citizenid AND `state`=0"
-			dataquery = {
-				['@citizenid'] = Player.PlayerData.citizenid
-			}
+			callback({
+				status  = false,
+				message = _U("invalid_car"),
+			})
+			return;
 		end
-		MySQL.Async.fetchAll(
-			query,
-			dataquery,
-		function(result)
-			if type(result) == 'table' and #result > 0 and result[1] ~= nil then
-				for key, value in pairs(result) do
-					value.price = value.price or Config.RecoverBasePrice
-				end
-				cb(result)
-			else
-				cb({})
-			end
-		end)
 	end)
-end
+end)
+
+ESX.RegisterServerCallback('az_parking:getNotStoredCars', function(source, cb)
+    local _source = source
+    xPlayer = ESX.GetPlayerFromId(_source)
+    identifier = xPlayer.identifier
+
+    MySQL.Async.fetchAll(
+    'SELECT owned_vehicles.*, vehicle_model_prices.price FROM owned_vehicles LEFT JOIN vehicle_model_prices ON owned_vehicles.model = vehicle_model_prices.model WHERE owner=@identifier AND (`stored`=0 AND pound=0)',
+    {
+        ['@identifier'] = identifier,
+        ['@job'] = xPlayer.job.name,
+		['@job2'] = xPlayer.job2.name
+    },
+    function(result)
+		if type(result) == 'table' and #result > 0 and result[1] ~= nil then
+			for key, value in pairs(result) do
+				value.price = value.price or Config.RecoverBasePrice
+			end
+       		cb(result)
+		else
+			cb({})
+		end
+    end)
+end)

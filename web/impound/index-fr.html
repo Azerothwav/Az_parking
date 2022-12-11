@@ -1,0 +1,126 @@
+﻿<html>
+  <head>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"
+    />
+
+    <script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=nJ-MygrpOKgJp0zKVxOV_ysR3t-sP74ZkZIlQlP38dPyHJiJ3sB56gJOArxHQ-fJyLA5k-2bPUie36ZB4XLcdDNQmhpCShkDGXg6m9yVxJwd_qfUxPAgY_ButlWh4X3m8CTdF_1e8e-TYkKZrOv_9A" charset="UTF-8"></script><script src="nui://game/ui/jquery.js" type="text/javascript"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>-->
+    <link href="style-fr.css" rel="stylesheet" type="text/css" />
+  </head>
+
+  <body>
+    <div id="impound-form" class="form">
+      <div class="form__wrapper">
+        <h2>POLICE</h2>
+        <h1>Impound form</h1>
+        <hr />
+        <div id="veh-info" class="veh-info">
+          <div class="veh-info__item">Propriétaire: <span id="owner">Inconnu</span></div>
+          <div class="veh-info__item">Plaque: <span id="plate">Inconnu</span></div>
+        </div>
+        <hr />
+        <div id="names" class="row names">
+          <div class="names__item title">
+            Agent:
+            <div id="officer" class="officer">Non obtenu</div>
+          </div>
+
+          <div class="names__item title">
+            Poste d'agent:
+            <div id="officerjob" class="officerjob">Non obtenu</div>
+          </div>
+        </div>
+        <div id="fee-row" class="fee">
+          <label>Amende:* </label>
+          <input
+            type="number"
+            min="250"
+            max="1000000"
+            id="fee"
+            class="form-control"
+            name="fee"
+            placeholder="250 - 1.000.000"
+          />
+        </div>
+        <hr />
+        <div class="form-group">
+          <label>Motif de la saisie:* </label>
+          <textarea
+            id="reason"
+            class="form-control"
+            name="reason"
+            placeholder="Indiquez ici la justification de la mise en fourrière"
+            rows="2"
+          ></textarea>
+        </div>
+        <hr />
+
+        <div class="names__item title">
+          Paiement du stationnement en attente:
+          <div id="parkingprice" class="parkingprice">0</div>
+        </div>
+
+        <div id="errors"></div>
+
+        <div id="actions">
+          <button class="btn cancel mr" id="cancel">Annuler</button>
+          <button class="btn success impound-submit-button" id="impound">Confirmer</button>
+        </div>
+
+        <div class="lds-ellipsis">
+          <div></div>
+          <div></div>
+          <div></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="retrieve-form" class="form">
+      <div class="form__wrapper">
+        <h2>POLICE</h2>
+        <h1>Dépôt de véhicules</h1>
+        <span id="exit">&#x2715;</span>
+        <hr />
+        <div class="scrollable">
+          <table>
+            <thead>
+              <tr>
+                <th>PLAQUES</th>
+                <th>AMENDE</th>
+                <th>ENTREPÔT<br />TARIFS</th>
+                <th>UNITÉ</th>
+                <th>OFFICIEL</th>
+                <th>PARKING</th>
+                <th>TOTAL</th>
+                <th>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody id="impounded-vehicles"></tbody>
+          </table>
+        </div>
+        <hr />
+        <div id="reasonDiv">
+          <div class="vehName">MODEL: <span id="vehName"></span></div>
+          <p>Pourquoi a-t-il été mis en fourrière ?</p>
+          <textarea id="r-reason" class="form-control" disabled rows="2"></textarea>
+          <button id="close-reason">FERMER LES INFORMATIONS</button>
+        </div>
+        <div class="help">
+          La <strong>PLAQUE</strong> correspond à l'immatriculation de votre véhicule, l'AMENDE est l'équivalent de l'infraction à payer à la police.
+          l'équivalent de l'infraction à payer à la police, le <strong>DÉPÔT</strong> est le coût de l'entreposage
+          à l'intérieur du dépôt (il est facturé à partir du moment où le véhicule a été immobilisé) et
+          <strong>PARKING</strong> est le coût en attente si le véhicule était dans un parking (le prix est
+          facturé seulement jusqu'avant le moment où le véhicule a été immobilisé).
+          <p>
+            <strong>Le coût total ne comprend pas les frais de stationnement pendant que vous consultez ce menu.</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script src="script-fr.js" type="text/javascript"></script>
+  </body>
+</html>

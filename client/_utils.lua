@@ -1,123 +1,41 @@
 _Utils = {}
+ESX	= nil
+PlayerData = nil
 
-_Utils.ActiveKeyboard = function(titre, taille)
-	DisplayOnscreenKeyboard(false, "FMMC_KEY_TIP8", "", "", "", "", "", taille)
-	input = true
-	while input do
-		if input == true then
-			HideHudAndRadarThisFrame()
-			if UpdateOnscreenKeyboard() == 3 then
-				input = false
-			elseif UpdateOnscreenKeyboard() == 1 then
-				local inputText = GetOnscreenKeyboardResult()
-				if string.len(inputText) > 0 then
-					input = false
-					return inputText
-				else
-					DisplayOnscreenKeyboard(false, "FMMC_KEY_TIP8", "", "", "", "", "", taille)
-				end
-			elseif UpdateOnscreenKeyboard() == 2 then
-				input = false
-			end
-		end
-		Citizen.Wait(0)
+Citizen.CreateThread(function()
+	while ESX == nil do
+		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
+		Citizen.Wait(5)
 	end
-end
-
-_Utils.CanAccessGarage = function(jobname)
-	local haveTheJob = false
-	if jobname == nil or jobname == 'none' or jobname == 'civ' then
-		return true
-	else
-		for k, v in pairs(Config.Job["name"]) do
-			if v() == jobname then
-				haveTheJob = true
-			end
-		end
-		return haveTheJob
+	while ESX.GetPlayerData().job == nil do
+		Citizen.Wait(50)
 	end
-end
+	PlayerData = ESX.GetPlayerData()
+	DoScreenFadeOut(10)
+	DoScreenFadeIn(10)
+end)
 
-_Utils.SpawnVehicle = function(model, spawnpos, plate, cb)
-	if Config.FrameWork == "ESX" then
-		ESX.Game.SpawnVehicle(model, spawnpos.xyz, spawnpos.w, function(vehicleEntity)
-			Config.GiveKey(plate)
-			cb(vehicleEntity)
-		end)
-	elseif Config.FrameWork == "QBCore" then
-		QBCore.Functions.SpawnVehicle(model, function(vehicleEntity)
-			SetEntityHeading(vehicleEntity, spawnpos.w)
-			Config.GiveKey(plate)
-			cb(vehicleEntity)
-		end, spawnpos.xyz, true)
-	end
-end
+RegisterNetEvent('esx:playerLoaded')
+AddEventHandler('esx:playerLoaded', function(xPlayer)
+	PlayerData = xPlayer
+end)
 
-_Utils.IsBoss = function()
-	local haveTheGrade = false
-	for k, v in pairs(Config.Job["grade"]) do
-		if v() == "Boss" or v() == "Chief" then
-			haveTheGrade = true
-		end
-	end
-	return haveTheGrade
-end
-
-_Utils.CallBack = function(name, cb, ...)
-	if Config.FrameWork == "ESX" then
-		ESX.TriggerServerCallback(name, function(callback)
-			cb(callback)
-		end, ...)
-	elseif Config.FrameWork == "QBCore" then
-		QBCore.Functions.TriggerCallback(name, function(callback)
-			cb(callback)
-		end, ...)
-	end
-end
-
-_Utils.GenerateVehicleLabel = function(vehicle, vehiclesurname)
-	if Config.FrameWork == "ESX" then
-		props = json.decode(vehicle.vehicle)
-	elseif Config.FrameWork == "QBCore" then
-		props = json.decode(vehicle.mods)
-	end
-	local vehiclename = GetLabelText(GetDisplayNameFromVehicleModel(props.model))
-	local plate = "[~o~".._Utils.Trim(vehicle.plate).."~s~]"
-	if vehiclesurname ~= nil then
-		return vehiclesurname.." - "..plate.." - [~o~"..string.upper(vehiclename).."~s~]"
-	else
-		return vehiclename.." - "..plate
-	end
-end
-
-_Utils.IsPositionFree = function(position, range)
-    local isFree = true
-    local entityOnPosition = 0
-    for k, entity in pairs(_Utils.EnumerateVehicles()) do
-        local coords = GetEntityCoords(entity)
-        if GetDistanceBetweenCoords(position, coords, true) <= range then
-            isFree = false
-            entityOnPosition = entity
-        end
-    end
-    return isFree, entityOnPosition
-end
-
-_Utils.EnumerateVehicles = function()
-	return GetGamePool("CVehicle")
-end
+RegisterNetEvent('esx:setJob')
+AddEventHandler('esx:setJob', function(job)
+	PlayerData.job = job
+end)
 
 _Utils.SendNotification = function(message, type)
-	if Config.FrameWork == "ESX" then
-		ESX.ShowNotification(message)
-	elseif Config.FrameWork == "QBCore" then
-		QBCore.Functions.Notify(message)
-	end
+	exports.pNotify:SendNotification({
+		text = message,
+		type = type,
+		queue = "az_parking",
+	})
 end
 
 _Utils.SetFuel = function(vehicle, value)
 	if Config.UseLegacyFuel then
-		exports["LegacyFuel"]:SetFuel(vehicle, value + 0.0) 
+		exports[Config.LegacyFuelResName]:SetFuel(vehicle, value + 0.0) 
 	else
 		SetVehicleFuelLevel(vehicle, value + 0.0)
 	end
@@ -125,12 +43,13 @@ end
 
 _Utils.GetFuel = function(vehicle)
 	if Config.UseLegacyFuel then
-		return exports["LegacyFuel"]:GetFuel(vehicle)
+		return exports[Config.LegacyFuelResName]:GetFuel(vehicle)
 	else
-		return _Utils.Round(GetVehicleFuelLevel(vehicle), 1) or 0
+		return ESX.Math.Round(GetVehicleFuelLevel(vehicle), 1) or 0
 	end
 end
 
+-- Draw 3D Text inGAME
 _Utils.Draw3DText = function(x, y, z, textInput, fontId, scaleX, scaleY)
 	local px, py, pz = table.unpack(GetGameplayCamCoords())
 	local dist       = GetDistanceBetweenCoords(px, py, pz, x, y, z, 1)    
@@ -153,6 +72,7 @@ _Utils.Draw3DText = function(x, y, z, textInput, fontId, scaleX, scaleY)
 	ClearDrawOrigin()
 end
 
+-- Show GTAV Default help text
 _Utils.DisplayHelpText = function(text)
 	BeginTextCommandDisplayHelp("STRING")
 	AddTextComponentSubstringPlayerName(text)
@@ -176,41 +96,99 @@ _Utils.Trim = function(value)
 	end
 end
 
+_Utils.GetVehicleName = function(vehicleData, vehicleHash)
+	if vehicleData[Config.VehicleNameColumn] then
+		-- CUSTOM USER NAME
+		return vehicleData[Config.VehicleNameColumn]
+	elseif vehicleData.model then
+		-- GET CAR MODEL FROM DB
+		return vehicleData.model
+	else
+		-- GET CAR NAME FROM DEFAULT GTAV GAME NAME
+		return GetDisplayNameFromVehicleModel(vehicleHash)
+	end
+end
+
+_Utils.GetVehicles = function()
+	local vehicles = {}
+	
+	for vehicle in EnumerateVehicles() do
+		table.insert(vehicles, vehicle)
+	end
+	
+	return vehicles
+end
+
+_Utils.GetVehiclesInArea = function(coords, area)
+	local vehicles = _Utils.GetVehicles()
+	local vehiclesInArea = {}
+	
+	for i=1, #vehicles, 1 do
+		local vehicleCoords = GetEntityCoords(vehicles[i])
+		local distance      = GetDistanceBetweenCoords(vehicleCoords, coords.x, coords.y, coords.z, true)
+		
+		if distance <= area then
+			table.insert(vehiclesInArea, vehicles[i])
+		end
+	end
+	
+	return vehiclesInArea
+end
+
+_Utils.GetVehiclePlate = function(vehicle)
+	return _Utils.Trim(GetVehicleNumberPlateText(vehicle))
+end
+
+_Utils.GetDuplicateVehicleCloseby = function(plate, coords, area)
+	local vehicles = _Utils.GetVehiclesInArea(coords, area)
+	for i,v in ipairs(vehicles) do
+		if _Utils.Trim(GetVehicleNumberPlateText(v)) == plate then
+			return v
+		end
+	end
+	return false
+end
+
+
+_Utils.IsTableEmpty = function(self)
+	if self == nil then
+		return true
+	end
+	for _, _ in pairs(self) do
+		return false
+	end
+	return true
+end
+   
 _Utils.DoesAPlayerDrivesCar = function(plate)
 	local isVehicleTaken = false
 	local players = ESX.Game.GetPlayers()
 	for i = 1, #players, 1 do
-		local target = GetPlayerPed(players[i])
-		if target ~= PlayerPedId() then
-			local plate1 = GetVehicleNumberPlateText(GetVehiclePedIsIn(target, true))
-			local plate2 = GetVehicleNumberPlateText(GetVehiclePedIsIn(target, false))
-			if plate == plate1 or plate == plate2 then
-				isVehicleTaken = true
-				break
-			end
-		end
+	   local target = GetPlayerPed(players[i])
+	   if target ~= PlayerPedId() then
+		  local plate1 = GetVehicleNumberPlateText(GetVehiclePedIsIn(target, true))
+		  local plate2 = GetVehicleNumberPlateText(GetVehiclePedIsIn(target, false))
+		  if plate == plate1 or plate == plate2 then
+			 isVehicleTaken = true
+			 break
+		  end
+	   end
 	end
 	return isVehicleTaken
-end
+ end
  
-_Utils.GetVehicleProperties = function(vehicle)
+ _Utils.GetVehicleProperties = function(vehicle)
 	if (not DoesEntityExist(vehicle)) then return end
 
 	local colorPrimary, colorSecondary = GetVehicleColours(vehicle)
-	local pearlescentColor, wheelColor = GetVehicleExtraColours(vehicle)
-	local hasCustomPrimaryColor = GetIsVehiclePrimaryColourCustom(vehicle)
-	local customPrimaryColor = nil
-	if hasCustomPrimaryColor then
-		local r, g, b = GetVehicleCustomPrimaryColour(vehicle)
-		customPrimaryColor = {r, g, b}
-	end
 
-	local hasCustomSecondaryColor = GetIsVehicleSecondaryColourCustom(vehicle)
-	local customSecondaryColor = nil
-	if hasCustomSecondaryColor then
-		local r, g, b = GetVehicleCustomSecondaryColour(vehicle)
-		customSecondaryColor = {r, g, b}
-	end
+	local color1Custom = {}
+	color1Custom[1], color1Custom[2], color1Custom[3] = GetVehicleCustomPrimaryColour(vehicle)
+	
+	local color2Custom = {}
+	color2Custom[1], color2Custom[2], color2Custom[3] = GetVehicleCustomSecondaryColour(vehicle)
+
+	local pearlescentColor, wheelColor = GetVehicleExtraColours(vehicle)
 	local extras = {}
 
 	for extraId = 0, 25 do
@@ -225,21 +203,21 @@ _Utils.GetVehicleProperties = function(vehicle)
 	local props = {
 		model             = GetEntityModel(vehicle),
 		
-		plate             = _Utils.Trim(GetVehicleNumberPlateText(vehicle)),
+		plate             = ESX.Math.Trim(GetVehicleNumberPlateText(vehicle)),
 		plateIndex        = GetVehicleNumberPlateTextIndex(vehicle),
 		
-		bodyHealth        = _Utils.Round(GetVehicleBodyHealth(vehicle), 1),
-		engineHealth      = _Utils.Round(GetVehicleEngineHealth(vehicle), 1),
-		tankHealth        = _Utils.Round(GetVehiclePetrolTankHealth(vehicle), 1),
+		bodyHealth        = ESX.Math.Round(GetVehicleBodyHealth(vehicle), 1),
+		engineHealth      = ESX.Math.Round(GetVehicleEngineHealth(vehicle), 1),
+		tankHealth        = ESX.Math.Round(GetVehiclePetrolTankHealth(vehicle), 1),
 		
 		fuelLevel         = saveFuelLevel,
-		dirtLevel         = _Utils.Round(GetVehicleDirtLevel(vehicle), 1),
+		dirtLevel         = ESX.Math.Round(GetVehicleDirtLevel(vehicle), 1),
 
 		color1            = colorPrimary,
-		color1Custom      = customPrimaryColor,
+		color1Custom      = color1Custom,
 
 		color2            = colorSecondary,
-		color2Custom      = customSecondaryColor,
+		color2Custom      = color2Custom,
 
 		color1Type 		  = GetVehicleModColor_1(vehicle),
 		color2Type 		  = GetVehicleModColor_2(vehicle),
@@ -311,12 +289,8 @@ _Utils.GetVehicleProperties = function(vehicle)
 		modTank           = GetVehicleMod(vehicle, 45),
 		modWindows        = GetVehicleMod(vehicle, 46),
 		modLivery         = GetVehicleMod(vehicle, 48),
-		livery            = GetVehicleLivery(vehicle),
+		livery            = GetVehicleLivery(vehicle)
 	}
-
-	if Config.UseAz_Vehicle then
-		props["vehiclemetadata"] = exports["az_vehicle"]:getPartsVehicle(_Utils.Trim(GetVehicleNumberPlateText(vehicle)), vehicle)
-	end
 	
 	props.tyres = {}
 	props.windows = {}
@@ -362,38 +336,43 @@ _Utils.GetVehicleProperties = function(vehicle)
 	return props
 end
 
-_Utils.SetVehicleProperties = function(vehicle, props, showvehicle)
+_Utils.SetVehicleProperties = function(vehicle, props)
 	if DoesEntityExist(vehicle) then
-		SetVehicleEngineHealth(vehicle, props["engineHealth"] and props["engineHealth"] + 0.0 or 1000.0)
-		SetVehicleBodyHealth(vehicle, props["bodyHealth"] and props["bodyHealth"] + 0.0 or 1000.0)
-		SetVehicleFuelLevel(vehicle, props["fuelLevel"] and props["fuelLevel"] + 0.0 or 1000.0)
-		
 		SetVehicleModKit(vehicle, 0)
 		SetVehicleAutoRepairDisabled(vehicle, false)
 		
 		local colorPrimary, colorSecondary = GetVehicleColours(vehicle)
-        local pearlescentColor, wheelColor = GetVehicleExtraColours(vehicle)
+		local pearlescentColor, wheelColor = GetVehicleExtraColours(vehicle)
 		
-		if props.customPrimaryColor then
-            SetVehicleCustomPrimaryColour(vehicle, props.customPrimaryColor[1], props.customPrimaryColor[2],
-                props.customPrimaryColor[3])
-        end
-        if props.customSecondaryColor then
-            SetVehicleCustomSecondaryColour(vehicle, props.customSecondaryColor[1], props.customSecondaryColor[2],
-                props.customSecondaryColor[3])
-        end
-        if props.color1 then
-            SetVehicleColours(vehicle, props.color1, colorSecondary)
-        end
-        if props.color2 then
-            SetVehicleColours(vehicle, props.color1 or colorPrimary, props.color2)
-        end
-        if props.pearlescentColor then
-            SetVehicleExtraColours(vehicle, props.pearlescentColor, wheelColor)
-        end
-        if props.wheelColor then
-            SetVehicleExtraColours(vehicle, props.pearlescentColor or pearlescentColor, props.wheelColor)
-        end
+		if (props.color1) then
+			ClearVehicleCustomPrimaryColour(vehicle)
+	
+			local color1, color2 = GetVehicleColours(vehicle)
+			SetVehicleColours(vehicle, props.color1, color2)
+		end
+	
+		if (props.color1Custom) then
+			SetVehicleCustomPrimaryColour(vehicle, props.color1Custom[1], props.color1Custom[2], props.color1Custom[3])
+		end
+	
+		if (props.color2) then
+			ClearVehicleCustomSecondaryColour(vehicle)
+	
+			local color1, color2 = GetVehicleColours(vehicle)
+			SetVehicleColours(vehicle, color1, props.color2)
+		end
+	
+		if (props.color2Custom) then
+			SetVehicleCustomSecondaryColour(vehicle, props.color2Custom[1], props.color2Custom[2], props.color2Custom[3])
+		end
+
+		if (props.color1Type) then
+			SetVehicleModColor_1(vehicle, props.color1Type)
+		end
+	
+		if (props.color2Type) then
+			SetVehicleModColor_2(vehicle, props.color2Type)
+		end
 
 		if props.plate then SetVehicleNumberPlateText(vehicle, props.plate) end
 		if props.plateIndex then SetVehicleNumberPlateTextIndex(vehicle, props.plateIndex) end
@@ -401,6 +380,8 @@ _Utils.SetVehicleProperties = function(vehicle, props, showvehicle)
 		if props.engineHealth then SetVehicleEngineHealth(vehicle, props.engineHealth + 0.0) end
 		if props.tankHealth then SetVehiclePetrolTankHealth(vehicle, props.tankHealth + 0.0) end
 		if props.dirtLevel then SetVehicleDirtLevel(vehicle, props.dirtLevel + 0.0) end
+		if props.pearlescentColor then SetVehicleExtraColours(vehicle, props.pearlescentColor, wheelColor) end
+		if props.wheelColor then SetVehicleExtraColours(vehicle, props.pearlescentColor or pearlescentColor, props.wheelColor) end
 		if props.wheels then SetVehicleWheelType(vehicle, props.wheels) end
 		if props.windowTint then SetVehicleWindowTint(vehicle, props.windowTint) end
 		
@@ -430,6 +411,7 @@ _Utils.SetVehicleProperties = function(vehicle, props, showvehicle)
 		end
 		
 		if props.xenonColor then SetVehicleXenonLightsColour(vehicle, props.xenonColor) end
+		if props.modSmokeEnabled then ToggleVehicleMod(vehicle, 20, true) end
 		
 		if props.tyreSmokeColor ~= nil then
 			if not props.tyreSmokeColor[1] then
@@ -457,7 +439,6 @@ _Utils.SetVehicleProperties = function(vehicle, props, showvehicle)
 		if props.modSuspension then SetVehicleMod(vehicle, 15, props.modSuspension, false) end
 		if props.modArmor then SetVehicleMod(vehicle, 16, props.modArmor, false) end
 		if props.modTurbo then ToggleVehicleMod(vehicle,  18, props.modTurbo) end
-		if props.modSmokeEnabled then ToggleVehicleMod(vehicle, 20, true) end
 		if props.modXenon then ToggleVehicleMod(vehicle,  22, props.modXenon) end
 		if props.modFrontWheels then SetVehicleMod(vehicle, 23, props.modFrontWheels, false) end
 		if props.modBackWheels then SetVehicleMod(vehicle, 24, props.modBackWheels, false) end
@@ -509,7 +490,7 @@ _Utils.SetVehicleProperties = function(vehicle, props, showvehicle)
 		end
 		
 		if props.doors then
-			for doorId = 0, 6, 1 do
+			for doorId = 0, 5, 1 do
 				if props.doors[doorId] ~= false then
 					SetVehicleDoorBroken(vehicle, doorId - 1, true)
 				end
@@ -520,10 +501,90 @@ _Utils.SetVehicleProperties = function(vehicle, props, showvehicle)
 		if props.fuelLevel then 
 			_Utils.SetFuel(vehicle, props.fuelLevel)	
 		end
-		if Config.UseAz_Vehicle then
-			if showvehicle and showvehicle ~= nil then
-				exports["az_vehicle"]:setVehicleWithParts(props, vehicle, props.plate)
-			end
+	end
+end
+
+_Utils.GetCarSpawnDistance = function(vehicle)
+	if vehicle.pound then
+		local goToPos = GetNearestWarehouse()
+		if goToPos then
+			return CalculateTravelDistanceBetweenPoints(vector3(goToPos.x, goToPos.y, goToPos.z), GetEntityCoords(PlayerPedId()))..'m'
+		else
+			return 0
+		end
+	elseif vehicle.stored and vehicle.garage_type == Config.RealParking.Type and vehicle.location then
+		local parkingLocation = json.decode(vehicle.location)
+		return CalculateTravelDistanceBetweenPoints(vector3(parkingLocation.x, parkingLocation.y, parkingLocation.z), GetEntityCoords(PlayerPedId()))..'m'
+	elseif vehicle.stored and _Garages[vehicle.garage_name] and _Garages[vehicle.garage_name].spawn then
+		local garageLocation = _Garages[vehicle.garage_name].spawn
+		return CalculateTravelDistanceBetweenPoints(vector3(garageLocation.x, garageLocation.y, garageLocation.z), GetEntityCoords(PlayerPedId()))..'m'
+	else
+		local goToPos = GetNearestRecoverPoint()
+		if goToPos then
+			return CalculateTravelDistanceBetweenPoints(vector3(goToPos.x, goToPos.y, goToPos.z), GetEntityCoords(PlayerPedId()))..'m'
+		else
+			return 0
 		end
 	end
+	return 0
+end
+
+_Utils.GenerateVehicleLabel = function(vehicle)
+	local props = json.decode(vehicle.vehicle)
+	local vehiclename = GetLabelText(GetDisplayNameFromVehicleModel(props.model))
+	local plate = "<span style='color:#d1af15;font-weight:bold;margin: 0 10px'>[".._Utils.Trim(vehicle.plate).."]</span>"
+	if vehicle.pound then
+		return  "<div style='display:flex'>"..vehiclename..plate.."</div>"
+	elseif vehicle.stored and vehicle.garage_type == Config.RealParking.Type then
+		return "<div style='display:flex'>"..vehiclename..plate.."</div>"
+	elseif vehicle.stored then
+		return "<div style='display:flex'>"..vehiclename..plate.."</div>"
+	else
+		return "<div style='display:flex'>"..vehiclename..plate.."</div>"
+	end
+end
+
+_Utils.GenerateVehicleLabelWithDistance = function(vehicle)
+	if vehicle.pound then
+		return  _Utils.GenerateVehicleLabel(vehicle).."<span style='color:"..Config.Colors.pound.."'>".._U('pound') .. "</span>"
+	elseif vehicle.stored and vehicle.garage_type == Config.RealParking.Type then
+		return _Utils.GenerateVehicleLabel(vehicle).."<div><span style='color:"..Config.Colors.parking.."'>".._U('parking') .. "</span> • ".._Utils.GetCarSpawnDistance(vehicle)..'</div>'
+	elseif vehicle.stored then
+		return _Utils.GenerateVehicleLabel(vehicle).."<div><span style='color:"..Config.Colors.stored.."'>".._U('stored') .. "</span> • ".._Utils.GetCarSpawnDistance(vehicle)..'</div>'
+	else
+		return _Utils.GenerateVehicleLabel(vehicle).."<div><span style='color:"..Config.Colors.outside.."'>".._U('outside') .. "</span> • ".._Utils.GetCarSpawnDistance(vehicle)..'</div>'
+	end
+end
+
+_Utils.IncludeJob = function(authorizedJobs, job, job2) 
+	print(authorizedJobs)
+	if authorizedJobs == nil or job == nil or job2 == nil then return true end
+	for key,value in pairs(authorizedJobs) do
+		if value == job or 'off'..value == job then
+			return key
+		end
+		if value == job2 or 'off'..value == job2 then
+			return key
+		end
+	end
+	return false
+end
+
+_Utils.FindIndex = function(array, string) 
+	if string == nil then return true end
+	for key,value in pairs(array) do
+		if value == string then
+			return key
+		end
+	end
+	return false
+end
+
+_Utils.Includes = function(array, search) 
+	for key, value in pairs(array) do
+		if value == search then
+			return key
+		end
+	end
+	return false
 end
