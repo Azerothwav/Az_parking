@@ -38,7 +38,7 @@ function ChargeData(GaragesTable, RecoversTable)
 			end
 		end
 	else
-		local result = json.decode(LoadResourceFile("az_parking", "data/garages.json"))
+		local result = json.decode(LoadResourceFile("Az_parking", "data/garages.json"))
 		if result ~= nil then
 			for k, v in pairs(result) do
 				GaragesDataJSON[k] = {}
@@ -47,7 +47,7 @@ function ChargeData(GaragesTable, RecoversTable)
 				end
 			end
 		end
-		local result2 = json.decode(LoadResourceFile("az_parking", "data/recovers.json"))
+		local result2 = json.decode(LoadResourceFile("Az_parking", "data/recovers.json"))
 		if result2 ~= nil then
 			for k, v in pairs(result2) do
 				Recovers[k] = {}
