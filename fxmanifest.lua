@@ -35,5 +35,5 @@ exports {
 }
 
 dependencies {
-	'az_context'
+	'Az_context'
 }
