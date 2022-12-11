@@ -1,138 +1,116 @@
 Config = {}
 
-Config.Debug = false
-Config.Locale = 'fr'
-Config.UseLegacyFuel = false -- Use false for esx_legacyfuel
-Config.LegacyFuelResName = "LegacyFuel" -- LegacyFuel resource folder name
-Config.MinParkingPrice = 0
-Config.RecoverBasePrice = 80000
-Config.RecoverRate = 0.1
-Config.VehicleNameColumn = 'owned_vehicles' -- Name at database to get vehicle name
-Config.EnableCivJob = true -- Vehicles without job has 'civ' at database
-Config.CivJob = 'civ' -- EnableCivJob must be true to work
-Config.StoreJobCarsGarage = 'central'
-Config.UseAdvencedNotification = true
-Config.CharGarage = 'CHAR_MP_MORS_MUTUAL'
-Config.PrintCarStored = false
+Config.FrameWork = "ESX" -- ESX, QBCore or custom
 
-Config.Colors = {
-	plate = '#d1af15',	
-	pound = '#c42f0a',	
-	parking = '#abc900',	
-	stored = '#51ab07',	
-	outside = '#238fe8',
-	prices = '#fff828',	
-}
+Config.UseLegacyFuel = false
+Config.RecoverBasePrice = 300
+Config.StoreOnServerStart = true
+Config.UseBtTarget = false
+Config.TargetRessource = "qb-target"
+Config.UseAz_Vehicle = false
 
--- Real Parking Menu
-Config.CarMenu = {
-	ColdDown = 360,
-	Command = 'cars',
-	ValetPed = 'cs_movpremmale',
-	ValetPricePerMeter = 0.8,
-	ValetPrice = function(player, place)
-		return math.floor(CalculateTravelDistanceBetweenPoints(player, place) * Config.CarMenu.ValetPricePerMeter)
+Config.PlayerIdentifier = function()
+	if Config.FrameWork == "ESX" then
+		return ESX.PlayerData.identifier
+	elseif Config.FrameWork == "QBCore" then
+		if PlayerData ~= nil then
+			return PlayerData.license
+		else
+			return ''
+		end
 	end
-}
+end
 
--- Real Parking Impound Configs
-Config.Impound = {
-	DrawDistance = 35.0, -- Marker distance draw
-	Command = "decomisar", -- Impound command (check user job)
-	AuthorizedJobs = { 'police' }, -- Table of string jobnames
-	Society = 'society_police',
-	ParkingFee = 500, -- Per day
-	Rules = {
-		minFee			= 1000,
-		maxFee 			= 15000,
-		minReasonLength	= 5,
+Config.GiveKey = function(plate)
+	if Config.FrameWork == "ESX" then
+		
+	elseif Config.FrameWork == "QBCore" then
+		TriggerEvent("vehiclekeys:client:SetOwner", plate)
+	end
+end
+
+Config.Job = {
+	["name"] = {
+		["job1"] = function()
+			if Config.FrameWork == "ESX" then
+				return ESX.PlayerData.job.name
+			elseif Config.FrameWork == "QBCore" then
+				return PlayerJob.name
+			end
+		end,
+		["job2"] = function()
+			if Config.FrameWork == "ESX" then
+				return ESX.PlayerData.job2.name
+			elseif Config.FrameWork == "QBCore" then
+				return PlayerJob.name
+			end
+		end,
+		--[[["job3"] = function()
+			if Config.FrameWork == "ESX" then
+				return ESX.PlayerData.job3.name
+			elseif Config.FrameWork == "QBCore" then
+				return PlayerJob.name
+			end
+		end]]
 	},
-	Marker = {
-		name = _U('warehouse_menu'),
-		size = 0.3,
-		color = { r = 37, g = 230, b = 34},
-		type = 24
-	},
-	Blip = {
-		sprite = 645,
-		color = 69,
-		size = 1.0		
+	["grade"] = {
+		["grade1"] = function()
+			if Config.FrameWork == "ESX" then
+				return ESX.PlayerData.job.grade_label
+			elseif Config.FrameWork == "QBCore" then
+				return PlayerJob.grade.name
+			end
+		end,
+		["grade2"] = function()
+			if Config.FrameWork == "ESX" then
+				return ESX.PlayerData.job2.grade_label
+			elseif Config.FrameWork == "QBCore" then
+				return PlayerJob.grade.name
+			end
+		end,
+		--[[["grade3"] = function()
+			if Config.FrameWork == "ESX" then
+				return ESX.PlayerData.job3.grade_label
+			elseif Config.FrameWork == "QBCore" then
+				return PlayerJob.grade.name
+			end
+		end]]
 	}
 }
 
--- Real Parking Configs
-Config.RealParking = {
-	Type = 2,
-	ShowEntrances = true,
-	ShowCarInfo = true,
-	RenderDistance = 5.0, -- How close do you need to render each parking zone cars
-	EntrancesDrawDistance = 40.0, -- How close do you need to be for the entrances to be drawn (in GTA units).
-	DrawDistance = 2.5, -- How close do you need to be for the plates to be drawn (in GTA units).
-	DefaultMaxCar = 25, -- Default max car per parking
-	MaxModels = 10,
-	PublicParkingBlip = {
-		sprite = 357,
-		color = 25,
-		size = 0.3
-	},
-	FreeParkingBlip = {
-		sprite = 357,
-		color = 66,
-		size = 0.3
-	},
-	PrivateParkingBlip = {
-		sprite = 357,
-		color = 75,
-		size = 0.3
-	}
-}
+Config.Lang = {
+	["car_broken"] = "Your car is in too bad condition",
+	["car_save"] = "Your car is stored",
+	["car_error"] = "Your car can't be stored",
+	["no_place"] = "No place for your car",
+	["no_vehicle"] = "No vehicle found",
+	["delete_help"] = "Press E to park your vehicle",
+	["spawn_help"] = "Press E to take a vehicle",
+	["recover_help"] = "Press E to open the impound",
+	["cant_access"] = "You can't access it",
+	["not_in_a_vehicle"] = "You are not in a vehicle",
+	["cant_in_a_vehicle"] = "You are in a vehicle",
+	["car_out"] = "Your car was taken out",
+	["vehicle_on_map"] = "The vehicle is already in town",
+	["not_boss"] = "You are not a boss",
+	["steal_vip"] = "You can't steal a VIP vehicle",
+	["job_vehicle"] = "You can't bring this vehicle here",
+	["not_enought_money"] = "You don't have enough money",
+	["vehicle_already_out"] = "Vehicle already out",
+	["rename_vehicle"] = "Rename your vehicle",
+	["get_out_vehicle"] = "Take your vehicle out",
+	["transfert_vehicle"] = "Transferer son véhicule",
 
--- Traditional Garages Config
-Config.Garages = {
-	Type = 1,
-	ShowTitle = true,
-	DrawDistance = 20.0, -- Marker distance draw
-	PublicGarageBlip = {
-		sprite = 289,
-		color = 25,
-		size = 0.5
-	},
-	FreeGarageBlip = {
-		sprite = 289,
-		color = 66,
-		size = 0.5
-	},
-	PrivateGarageBlip = {
-		sprite = 289,
-		color = 75,
-		size = 0.0
-	},
-	SpawnMarker = {
-		size = 1.0,
-		color = { r = 255, g = 255, b = 255},
-		type = 36
-	},
-	DeleteMarker = {
-		size = 1.0,
-		color = { r = 255, g = 255, b = 255},
-		type = 5
-	},
-}
+	["public_recover"] = "Public pound",
+	["private_recover"] = "Private pound",
+	["public_garage"] = "Public garage",
+	["private_garage"] = "Private garage",
 
--- Car Recover Points
-Config.RecoverPoints = {
-	Society = "society_police",
-	ShowTitle = true,
-	DrawDistance = 30.0, -- Marker distance draw
-	Blip = {
-		name = 'Fourriere',
-		sprite = 380,
-		color = 57,
-		size = 1.0
-	},
-	Marker = {
-		size = 2.0,
-		color = { r = 250, g = 250, b = 34},
-		type = 36
-	},
+	--Stolen Garage
+	["stolen_garage_help"] = "Press E to open the garage",
+
+	-- Target part
+	["see_vehicle"] = "Browse the vehicles",
+	["see_recover_vehicle"] = "Browse the pound",
+	["put_in_garage"] = "Put your vehicle away"
 }

@@ -1,167 +1,132 @@
--- Global Variables
-local CurrentRecoverPoint = nil
-local IsMenuOpen = false
+RageMenu.Menu.RecoverIsOpen = false
+RageMenu.Menu.Recover = RageUI.CreateMenu("", "Recover", nil, nil, "azui_main", "azui_garage")
+RageMenu.Menu.RecoverSpawn = RageUI.CreateSubMenu(RageMenu.Menu.Recover, "", "Garage", nil, nil, "azui_main", "azui_garage")
 
-function SpawnRecoverVehicle(vehData, recoverPoint)
-	local player = GetPlayerPed(-1)
-	local spawn = recoverPoint
-	local props = json.decode(vehData.vehicle)
-	if ESX.Game.IsSpawnPointClear(spawn, 2.0) then
-		DoScreenFadeOut(150)
-		ESX.TriggerServerCallback("az_parking:getOutFromRecover", function(callback)
-			local vehicle = callback.vehData
-			if callback.status then
-				DoScreenFadeIn(150)
-				ESX.Game.SpawnVehicle(vehicle.props.model, spawn, spawn.h, function(vehicleEntity)
-					_Utils.SetVehicleProperties(vehicleEntity, vehicle.props)
-					AddCarOnEarth(vehicle.props.plate, vehicleEntity)
-					TaskWarpPedIntoVehicle(GetPlayerPed(-1), vehicleEntity, -1)
-					SetVehicleHasBeenOwnedByPlayer(vehicleEntity, true)
-					SetVehicleOnGroundProperly(vehicleEntity)
-				end)
-				if Config.UseAdvencedNotification then
-					ESX.ShowAdvancedNotification('FOURRIERE', 'Status', 'Véhicule sortis de la fourrière', Config.CharGarage, 1)
-				else
-					ESX.ShowNotification('Vehicule sortis de la fourrière');
-				end
-			else
-				DoScreenFadeIn(150)
-				if Config.UseAdvencedNotification then
-					ESX.ShowAdvancedNotification('FOURRIERE', 'Status', 'Une erreur lors de la sortis de la fourrière', Config.CharGarage, 1)
-				else
-					ESX.ShowNotification('Une erreur lors de la sortis de la fourrière');
-				end
-			end
-		end, vehData)
-	else
-		_Utils.SendNotification(_U('no_spawn_places'), "error")
-		if Config.UseAdvencedNotification then
-			ESX.ShowAdvancedNotification('FOURRIERE', 'Status', _U('no_spawn_places'), Config.CharGarage, 1)
+RageMenu.Menu.Recover.Closed = function()
+	RageMenu.Menu.RecoverIsOpen = false
+    RageUI.Visible(RageMenu.Menu.Recover, false)
+	RageUI.Visible(RageMenu.Menu.RecoverSpawn, false)
+	RenderScriptCams(false, 1, 1500, 1, 0)
+	DestroyCam(MainCamera, false)
+	if DoesEntityExist(lastvehicle) then
+		DeleteEntity(lastvehicle)
+	end
+	lastvehicle, lastvehiclemodel, lastvehicleplate = nil, nil, nil
+end
+
+function OpenMenuRecover(jobname, typeVeh, spawn)
+	_Utils.CallBack("az_parking:getNotStored", function(vehicles)
+		if #vehicles == 0 then
+			_Utils.SendNotification(Config.Lang["no_vehicle"])
 		else
-			ESX.ShowNotification_U('no_spawn_places');
-		end
-	end
-end
-
--- Open Recover Menu Function Handler
-function OpenMenuRecover(recoverPoint)
-	ESX.UI.Menu.CloseAll()
-	IsMenuOpen = true
-	ESX.TriggerServerCallback('az_parking:getNotStoredCars', function(vehicles)
-		if not vehicles then
-			if Config.UseAdvencedNotification then
-				ESX.ShowAdvancedNotification('FOURRIERE', 'Status', _U("no_cars_founded"), Config.CharGarage, 1)
-			else
-				ESX.ShowNotification_U("no_cars_founded");
-			end
-		end
-		local elements = {}
-		for key, vehicle in pairs(vehicles) do
-			local recoverPrice = math.ceil(vehicle.price * Config.RecoverRate)
-			table.insert(elements, { 
-				label = '<div style="display:flex">'.._Utils.GenerateVehicleLabel(vehicle).."<span style='color:red'>$"..recoverPrice.."</span></div>",
-				value = 'recover_vehicle',
-				vehicle = vehicle
-			})
-		end
-		ESX.UI.Menu.Open('default', GetCurrentResourceName(), 'recover_menu',
-			{
-			title = _U('recover_menu'),
-			align = 'bottom-right',
-			elements = elements
-			},
-		function(data, menu)
-			if (data.current.value == 'recover_vehicle') then
-				if not IsCarOnEarth(data.current.vehicle.plate) and not _Utils.DoesAPlayerDrivesCar(data.current.vehicle.plate) then
-					SpawnRecoverVehicle(data.current.vehicle, recoverPoint)
-				else
-					if Config.UseAdvencedNotification then
-						ESX.ShowAdvancedNotification('FOURRIERE', 'Status', _U('vehicle_on_map'), Config.CharGarage, 1)
-					else
-						ESX.ShowNotification_U('vehicle_on_map');
+			local vehiclespawn = nil
+			RageUI.Visible(RageMenu.Menu.Recover, not RageUI.Visible(RageMenu.Menu.Recover))
+			RageMenu.Menu.RecoverIsOpen = true
+			while RageMenu.Menu.RecoverIsOpen do
+				RageUI.IsVisible(RageMenu.Menu.Recover, function()
+					for k, v in pairs(vehicles) do 
+						RageUI.Button(_Utils.GenerateVehicleLabel(v), nil, {}, true, {
+							onSelected = function()
+								ShowVehicleBeforeSpawn(v.vehicle, spawn)
+								if not IsCarOnEarth(v.plate) and not _Utils.DoesAPlayerDrivesCar(v.plate) then
+									vehiclespawn = v
+									RageUI.Visible(RageMenu.Menu.Recover, not RageUI.Visible(RageMenu.Menu.Recover))
+									RageUI.Visible(RageMenu.Menu.RecoverSpawn, not RageUI.Visible(RageMenu.Menu.RecoverSpawn))
+								else
+									_Utils.SendNotification(Config.Lang["vehicle_on_map"])
+								end
+							end
+						})
 					end
-				end
-				menu.close()
+				end)
+				RageUI.IsVisible(RageMenu.Menu.RecoverSpawn, function()
+					RageUI.Button(Config.Lang["get_out_vehicle"], nil, {}, true, {
+						onSelected = function()
+							RageMenu.Menu.Recover.Closed()
+							SpawnGarageVehicle(vehiclespawn, nil, spawn, "recover", jobname)
+						end,
+						onActive = function()
+							for k, v in pairs(spawn) do
+								DrawMarker(20, v.x, v.y, v.z + 1.1, 0.0, 0.0, 0.0, 0.0, 180.0, 0.0, 0.3, 0., 0.3, 255, 255, 255, 200, 1, true, 2, 0, nil, nil, 0)
+							end
+						end
+					})
+				end)
+				Citizen.Wait(0)
 			end
-		end,
-		function(data, menu)
-			menu.close()
-		end)
-	end)
+		end
+	end, {type = typeVeh, jobname = jobname})
 end
 
--- Player Keyboard input handler for open menu thread
-Citizen.CreateThread(function()
-	while true do
-		Citizen.Wait(0)
-		if CurrentRecoverPoint ~= nil and IsControlJustReleased(0, 38) then
-			local PlayerPed = PlayerPedId()
-			if IsPedInAnyVehicle(PlayerPed, false) then
-				if Config.UseAdvencedNotification then
-					ESX.ShowAdvancedNotification('FOURRIERE', 'Status', _U('cant_inside_vehicle'), Config.CharGarage, 1)
-				else
-					ESX.ShowNotification_U('cant_inside_vehicle');
-				end
-			else
-				OpenMenuRecover(CurrentRecoverPoint)
-			end
-		end
-	end
+AddEventHandler("az_parking:openRecovers", function(data)
+	OpenMenuRecover(data.jobname, data.typeVeh, data.possibleSpawn)
 end)
 
--- Recover Marker Thread
 Citizen.CreateThread(function()
 	while true do
-		if ESX ~= nil and CurrentRecoverPoint ~= nil then
-			local point = vector3(CurrentRecoverPoint.x, CurrentRecoverPoint.y, CurrentRecoverPoint.z)
-			DrawMarker(Config.RecoverPoints.Marker.type, point, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 1.0, 1.0, 1.0, Config.RecoverPoints.Marker.color.r, Config.RecoverPoints.Marker.color.g, Config.RecoverPoints.Marker.color.b, 100, false, true, 2, true, false, false, false)
-			DrawMarker(43, vector3(point.x, point.y, point.z - 1.0), 0.0, 0.0, 0.0, 0, 0.0, 0.0, Config.RecoverPoints.Marker.size, Config.RecoverPoints.Marker.size, Config.RecoverPoints.Marker.size, Config.RecoverPoints.Marker.color.r, Config.RecoverPoints.Marker.color.g, Config.RecoverPoints.Marker.color.b, 100, false, true, 2, true, false, false, false)
-			if CurrentRecoverPoint.onPoint then
-				_Utils.DisplayHelpText(_U('recover_help'))
-			end
-		end
-		Citizen.Wait(5)
-	end
-end)
-
--- Position Thread
-Citizen.CreateThread(function()
-	while true do
+		local wait = 1000
 		if ESX ~= nil then
 			local playerCoords = GetEntityCoords(PlayerPedId())
-			for key, point in pairs(_RecoverPoints) do
-				local spawnPoint = vector3(point.x, point.y, point.z)
-				if #(playerCoords - spawnPoint) < Config.RecoverPoints.DrawDistance then
-					CurrentRecoverPoint = point
-					if #(playerCoords - spawnPoint) < Config.RecoverPoints.Marker.size then
-						CurrentRecoverPoint.onPoint = true
-					else
-						if IsMenuOpen then
-							ESX.UI.Menu.Close('default', GetCurrentResourceName(), 'recover_menu')
-							IsMenuOpen = false
+			for k, v in pairs(Recovers) do
+				if not Config.UseBtTarget then
+					local position = vector3(v.position.x, v.position.y, v.position.z)
+					if GetDistanceBetweenCoords(position, playerCoords, true) < 20 then
+						wait = 0 
+						if v.jobname ~= nil and v.jobname ~= 'civ' then
+							_Utils.Draw3DText(v.position.x, v.position.y, v.position.z - 0.7, Config.Lang["private_recover"], 4, 0.15, 0.15)
+						else
+							_Utils.Draw3DText(v.position.x, v.position.y, v.position.z - 0.7, Config.Lang["public_recover"], 4, 0.15, 0.15)
 						end
-						CurrentRecoverPoint.onPoint = false
+						DrawMarker(36, position, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 1.0, 1.0, 1.0, 255, 255, 255, 150, false, true, 2, true, false, false, false)
+						DrawMarker(25, vector3(position.x, position.y, position.z - 0.5), 0.0, 0.0, 0.0, 0, 0.0, 0.0, 1.0, 1.0, 1.0, 255, 255, 255, 150, false, true, 2, true, false, false, false)
+						if not RageUI.Visible(RageMenu.Menu.Recover) then
+							if GetDistanceBetweenCoords(position, playerCoords, true) < 2 then
+								_Utils.DisplayHelpText(Config.Lang["recover_help"])
+							end
+							if IsControlJustReleased(0, 38) then
+								if IsPedInAnyVehicle(PlayerPedId(), false) then
+									_Utils.SendNotification(Config.Lang["cant_in_a_vehicle"])
+								else
+									OpenMenuRecover(v.jobname, v.typeVeh, v.spawnPos)
+								end
+							end
+						end
 					end
 				else
-					CurrentRecoverPoint = nil
+					if not btZoneCharge then
+						btZoneCharge = true
+						for x, w in pairs(v.spawnPos) do
+							local interactionPos = vector4(w.x, w.y, w.z + 0.5, w.w)
+							exports[Config.TargetRessource]:addBoxZone({
+								coords = interactionPos.xyz,
+								size = vec3(4, 4, 4),
+								rotation = 45,
+								debug = false,
+								options = {
+									{
+										name = v.name,
+										jobname = v.jobname,
+										typeVeh = v.typeVeh,
+										event = 'az_parking:openRecovers',
+										icon = 'fas fa-warehouse',
+										label = Config.Lang["see_recover_vehicle"],
+										possibleSpawn = Recovers[k]["spawnPos"],
+										index = k,
+										canInteract = function(entity, distance, coords, name)
+											if not IsPedInAnyVehicle(PlayerPedId(), false) then
+												return true
+											else
+												return false
+											end
+										end
+									}
+								}
+							})
+						end
+					end
 				end
 			end
 		end
-		Citizen.Wait(500)
-	end
-end)
-
--- Recover Blips Thread
-Citizen.CreateThread(function()
-	-- Display blips for RecoverPoints
-	for k, point in pairs(_RecoverPoints) do
-		local blip = AddBlipForCoord(point.x, point.y, point.z)
-		SetBlipSprite(blip, Config.RecoverPoints.Blip.type or 380)
-		SetBlipColour(blip, Config.RecoverPoints.Blip.color or 57)
-		SetBlipScale(blip, Config.RecoverPoints.Blip.size or 0.9)
-		SetBlipAsShortRange(blip, true)
-		BeginTextCommandSetBlipName("STRING")
-		AddTextComponentString(Config.RecoverPoints.Blip.name)
-		EndTextCommandSetBlipName(blip)
+		Citizen.Wait(wait)
 	end
 end)
