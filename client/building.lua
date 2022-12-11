@@ -1,5 +1,9 @@
-RegisterCommand('testgarage', function()
+RegisterCommand('creategarage', function()
     LaunchBuild("garage")
+end, false)
+
+RegisterCommand('createimpound', function()
+    LaunchBuild("recover")
 end, false)
 
 local heading = 0.0
