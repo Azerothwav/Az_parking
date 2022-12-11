@@ -150,7 +150,7 @@ function LaunchBuild(indication)
         end
 
         if IsControlJustReleased(0, 18) then
-            local contextinfo = exports["az_context"]:ShowContextMenu({
+            local contextinfo = exports["Az_context"]:ShowContextMenu({
                 title = 'Job setting', 
                 field = 2,
                 field1 = 'Job name :',
