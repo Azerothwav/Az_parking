@@ -88,6 +88,20 @@ local tabletest = {
     }
 }
 
+DrawInfos = function(text)
+	SetTextColour(255, 255, 255, 255)
+	SetTextFont(4)
+	SetTextScale(0.4, 0.4)
+	SetTextWrap(0.0, 1.0)
+	SetTextCentre(true)
+	SetTextDropshadow(0, 0, 0, 0, 255)
+	SetTextEdge(50, 0, 0, 0, 255)
+	SetTextOutline()
+	SetTextEntry("STRING")
+	AddTextComponentString(text)
+	DrawText(0.5, 0.01)
+end
+
 function LaunchBuild(indication)
     local data = {}
     for i = 1, #tabletest[indication], 1 do
@@ -98,6 +112,8 @@ function LaunchBuild(indication)
         local hit, coords, entity = RayCastGamePlayCamera(1000.0)
         local coords = vector3(coords.x, coords.y, coords.z + 1.0)
         tabletest[indication][index].marker(coords)
+
+        DrawInfos("Actual point : "..Building[index].name.."\nPress = to move to the next point \nor back to return \nEnter when you finish")
 
         if not tabletest[indication][index].name == 'possiblespawn' then
             if DoesEntityExist(veh) then
