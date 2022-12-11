@@ -113,7 +113,7 @@ function LaunchBuild(indication)
         local coords = vector3(coords.x, coords.y, coords.z + 1.0)
         tabletest[indication][index].marker(coords)
 
-        DrawInfos("Actual point : "..Building[index].name.."\nPress = to move to the next point \nor back to return \nEnter when you finish")
+        DrawInfos("Actual point : "..tabletest[indication][index].name.."\nPress = to move to the next point\nor back to return\nEnter when you finish")
 
         if not tabletest[indication][index].name == 'possiblespawn' then
             if DoesEntityExist(veh) then
