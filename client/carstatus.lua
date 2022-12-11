@@ -1,4 +1,3 @@
--- Global Variables
 local CarsOnEarth = {}
 
 function AddCarOnEarth(plate, entity)
@@ -6,21 +5,25 @@ function AddCarOnEarth(plate, entity)
 end
 
 function IsCarOnEarth(plate)
-	for k,v in pairs (CarsOnEarth) do
-		if ESX.Math.Trim(v.plate) == ESX.Math.Trim(plate) then
-			if DoesEntityExist(v.entity) then
-				return true
-			else
-				table.remove(CarsOnEarth, k)
-				return false
+	if #CarsOnEarth > 0 then
+		for k,v in pairs (CarsOnEarth) do
+			if _Utils.Trim(v.plate) == _Utils.Trim(plate) then
+				if DoesEntityExist(v.entity) then
+					return true
+				else
+					table.remove(CarsOnEarth, k)
+					return false
+				end
 			end
 		end
+	else
+		return false
 	end
 end
 
 function RemoveCarFromEarth(plate, entity)
-	for k,v in pairs (CarsOnEarth) do
-		if ESX.Math.Trim(v.plate) == ESX.Math.Trim(plate) then
+	for k, v in pairs(CarsOnEarth) do
+		if _Utils.Trim(v.plate) == _Utils.Trim(plate) then
 			table.remove(CarsOnEarth, k)
 		end
 	end
