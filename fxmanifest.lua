@@ -33,3 +33,7 @@ exports {
     "IsCarOnEarth",
     "RemoveCarFromEarth"
 }
+
+dependencies {
+	'az_context'
+}
