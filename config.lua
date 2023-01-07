@@ -1,11 +1,11 @@
 Config = {}
 
-Config.FrameWork = "ESX" -- ESX, QBCore or custom
+Config.FrameWork = "QBCore" -- ESX, QBCore or custom
 
 Config.UseLegacyFuel = false
 Config.RecoverBasePrice = 300
 Config.StoreOnServerStart = true
-Config.UseBtTarget = false
+Config.UseBtTarget = true
 Config.TargetRessource = "qb-target"
 Config.UseAz_Vehicle = false
 
